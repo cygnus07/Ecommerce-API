@@ -1,7 +1,9 @@
+import { Types } from 'mongoose'
+
 export interface ReviewDocument {
     _id: string;
-    product: string;
-    user: string;
+    product: Types.ObjectId;
+    user: Types.ObjectId;
     rating: number;
     title?: string;
     comment: string;
