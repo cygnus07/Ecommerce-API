@@ -1,0 +1,42 @@
+import { createApp } from './app.js';
+import { connectToDatabase } from './config/database.js';
+import { env } from './config/environment.js';
+import { logger } from './utils/logger.js';
+
+/**
+ * Server startup function
+ */
+export const startServer = async (): Promise<void> => {
+  try {
+    // Connect to MongoDB
+    await connectToDatabase();
+    
+    // Create Express app
+    const app = createApp();
+    
+    // Start the server
+    const server = app.listen(env.PORT, () => {
+      logger.info(`Server running in ${env.NODE_ENV} mode on port ${env.PORT}`);
+      logger.info(`API available at http://localhost:${env.PORT}`);
+    });
+    
+    // Handle unhandled rejections
+    process.on('unhandledRejection', (err: Error) => {
+      logger.error(`Unhandled Rejection: ${err.message}`);
+      logger.error(err.stack || '');
+      server.close(() => process.exit(1));
+    });
+    
+    // Handle SIGTERM signal
+    process.on('SIGTERM', () => {
+      logger.info('SIGTERM received. Shutting down gracefully');
+      server.close(() => {
+        logger.info('Process terminated');
+      });
+    });
+    
+  } catch (error) {
+    logger.error(`Error starting server: ${error instanceof Error ? error.message : 'Unknown error'}`);
+    process.exit(1);
+  }
+};
