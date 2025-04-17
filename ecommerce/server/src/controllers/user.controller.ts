@@ -1,7 +1,7 @@
 import { Request, Response } from 'express';
 import bcrypt from 'bcryptjs';
 import jwt from 'jsonwebtoken';
-import { User } from '../models/user.model.js';
+import  User  from '../models/User.model.js';
 import { sendSuccess, sendError, ErrorCodes } from '../utils/apiResponse.js';
 import { env } from '../config/environment.js';
 import { logger } from '../utils/logger.js';
@@ -32,15 +32,15 @@ export const userController = {
       
       // Generate token
       const token = jwt.sign(
-        { userId: user._id },
-        env.JWT_SECRET,
-        { expiresIn: env.JWT_EXPIRATION }
+        { userId: user._id.toString() }, // Ensure _id is a string (Mongoose ObjectId → string)
+        env.JWT_SECRET as string,        // Explicitly assert as string if needed
+        { expiresIn: env.JWT_EXPIRATION } as jwt.SignOptions // Type assertion for options
       );
-      
+
       const refreshToken = jwt.sign(
-        { userId: user._id },
-        env.JWT_REFRESH_SECRET,
-        { expiresIn: env.JWT_REFRESH_EXPIRATION }
+        { userId: user._id.toString() },
+        env.JWT_REFRESH_SECRET as string,
+        { expiresIn: env.JWT_REFRESH_EXPIRATION } as jwt.SignOptions
       );
       
       // Remove password from response
@@ -77,13 +77,13 @@ export const userController = {
       const token = jwt.sign(
         { userId: user._id },
         env.JWT_SECRET,
-        { expiresIn: env.JWT_EXPIRATION }
+        { expiresIn: env.JWT_EXPIRATION } as jwt.SignOptions
       );
       
       const refreshToken = jwt.sign(
         { userId: user._id },
         env.JWT_REFRESH_SECRET,
-        { expiresIn: env.JWT_REFRESH_EXPIRATION }
+        { expiresIn: env.JWT_REFRESH_EXPIRATION } as jwt.SignOptions
       );
       
       // Remove password from response
@@ -114,7 +114,7 @@ export const userController = {
       const token = jwt.sign(
         { userId: decoded.userId },
         env.JWT_SECRET,
-        { expiresIn: env.JWT_EXPIRATION }
+        { expiresIn: env.JWT_EXPIRATION } as jwt.SignOptions
       );
       
       sendSuccess(res, { token }, 'Token refreshed successfully');
