@@ -158,7 +158,7 @@ export const userController = {
   // Update user profile
   updateProfile: async (req: Request, res: Response): Promise<void> => {
     try {
-      const { name, email, phone, address } = req.validatedData as UpdateProfileInput;
+      const { firstName, lastName, email, phone } = req.validatedData as UpdateProfileInput;
       const userId = req.user._id;
       
       // Check if email is being changed and already exists
@@ -173,7 +173,7 @@ export const userController = {
       // Update user
       const updatedUser = await User.findByIdAndUpdate(
         userId,
-        { name, email, phone, address },
+        { firstName, lastName, email, phone },
         { new: true, runValidators: true }
       );
       
