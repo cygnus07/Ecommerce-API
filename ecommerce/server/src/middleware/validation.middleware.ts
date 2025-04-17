@@ -1,18 +1,23 @@
-import { Request, Response, NextFunction } from 'express';
-import { ZodSchema } from 'zod';
+import { Request, Response, NextFunction, RequestHandler } from 'express';
+import { z, ZodError } from 'zod';
 import { ErrorCodes } from '../utils/apiResponse.js';
 
-export const validate = (schema: ZodSchema) => {
+declare global {
+  namespace Express {
+    interface Request {
+      validatedData?: any;
+    }
+  }
+}
+
+export const validate = <T extends z.ZodTypeAny>(schema: T): RequestHandler => {
   return async (req: Request, res: Response, next: NextFunction) => {
     try {
-      // Validate request body against schema
-      const validatedData = await schema.parseAsync(req.body);
-      
-      // Attach validated data to request
-      req.validatedData = validatedData;
+      // Validate just the request body directly
+      req.validatedData = await schema.parseAsync(req.body);
       next();
     } catch (error) {
-      if (error instanceof z.ZodError) {
+      if (error instanceof ZodError) {
         return res.status(400).json({
           success: false,
           code: ErrorCodes.VALIDATION_ERROR,
