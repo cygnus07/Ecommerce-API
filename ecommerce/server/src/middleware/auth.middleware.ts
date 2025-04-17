@@ -1,11 +1,11 @@
 import { Request, Response, NextFunction } from 'express';
 import jwt from 'jsonwebtoken';
 import { env } from '../config/environment.js';
-import { sendError, ErrorCodes } from '../utils/apiResponse.js';
-import  User  from '../models/User.model.js';
+import { ErrorCodes } from '../utils/apiResponse.js';
+import User from '../models/User.model.js';
 import { logger } from '../utils/logger.js';
 
-// Extend Express Request type to include user property
+// Extend Express Request type
 declare global {
   namespace Express {
     interface Request {
@@ -17,53 +17,63 @@ declare global {
 
 export const authenticate = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
   try {
-    // Get token from Authorization header
     const authHeader = req.headers.authorization;
     
     if (!authHeader || !authHeader.startsWith('Bearer ')) {
-      sendError(res, 'Authentication required', 401, ErrorCodes.UNAUTHORIZED);
-      return;
+      const error = new Error('Authentication required');
+      (error as any).statusCode = 401;
+      (error as any).code = ErrorCodes.UNAUTHORIZED;
+      throw error;
     }
     
     const token = authHeader.split(' ')[1];
     
     if (!token) {
-      sendError(res, 'Authentication required', 401, ErrorCodes.UNAUTHORIZED);
-      return;
+      const error = new Error('Authentication required');
+      (error as any).statusCode = 401;
+      (error as any).code = ErrorCodes.UNAUTHORIZED;
+      throw error;
     }
     
-    // Verify token
     const decoded = jwt.verify(token, env.JWT_SECRET) as any;
-    
-    // Find user
     const user = await User.findById(decoded.userId);
     
     if (!user) {
-      sendError(res, 'User not found', 401, ErrorCodes.UNAUTHORIZED);
-      return;
+      const error = new Error('User not found');
+      (error as any).statusCode = 401;
+      (error as any).code = ErrorCodes.UNAUTHORIZED;
+      throw error;
     }
     
-    // Add user and token to request
     req.user = user;
     req.token = token;
-    
     next();
   } catch (error) {
     logger.error(`Auth middleware error: ${error}`);
-    sendError(res, 'Authentication failed', 401, ErrorCodes.UNAUTHORIZED);
+    next(error); // Pass to error handler
   }
 };
 
 export const authorize = (...roles: string[]) => {
   return (req: Request, res: Response, next: NextFunction) => {
-    if (!req.user) {
-      return sendError(res, 'Authentication required', 401, ErrorCodes.UNAUTHORIZED);
+    try {
+      if (!req.user) {
+        const error = new Error('Authentication required');
+        (error as any).statusCode = 401;
+        (error as any).code = ErrorCodes.UNAUTHORIZED;
+        throw error;
+      }
+      
+      if (!roles.includes(req.user.role)) {
+        const error = new Error('Not authorized to access this resource');
+        (error as any).statusCode = 403;
+        (error as any).code = ErrorCodes.FORBIDDEN;
+        throw error;
+      }
+      
+      next();
+    } catch (error) {
+      next(error); // Pass to error handler
     }
-    
-    if (!roles.includes(req.user.role)) {
-      return sendError(res, 'Not authorized to access this resource', 403, ErrorCodes.FORBIDDEN);
-    }
-    
-    next();
   };
 };

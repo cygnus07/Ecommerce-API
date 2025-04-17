@@ -78,7 +78,7 @@ const userSchema = new Schema<UserDocument>({
 });
 
 // Indexes
-userSchema.index({ email: 1 }, { unique: true });
+// userSchema.index({ email: 1 }, { unique: true });
 userSchema.index({ emailVerificationToken: 1 });
 userSchema.index({ passwordResetToken: 1 });
 userSchema.index({ status: 1 });

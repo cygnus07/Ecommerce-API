@@ -1,7 +1,7 @@
 import { Router } from 'express';
 import { userController } from '../controllers/user.controller.js';
 import { authenticate, authorize } from '../middleware/auth.middleware.js';
-import { validate } from '../middleware/validate.middleware.js';
+import { validate } from '../middleware/validation.middleware.js';
 import { 
   registerSchema,
   loginSchema,
@@ -9,7 +9,7 @@ import {
   updateProfileSchema,
   changePasswordSchema,
   adminUpdateUserSchema
-} from '../validations/user.validator.js';
+} from '../validators/user.validator.js';
 
 const router = Router();
 
@@ -18,13 +18,13 @@ router.post('/register', validate(registerSchema), userController.register);
 router.post('/login', validate(loginSchema), userController.login);
 router.post('/refresh-token', validate(refreshTokenSchema), userController.refreshToken);
 
-// Authenticated user routes
+// Authenticated routes
 router.use(authenticate);
 router.get('/profile', userController.getProfile);
 router.put('/profile', validate(updateProfileSchema), userController.updateProfile);
 router.put('/change-password', validate(changePasswordSchema), userController.changePassword);
 
-// Admin-only routes
+// Admin routes
 router.use(authorize('admin'));
 router.get('/', userController.getAllUsers);
 router.get('/:id', userController.getUserById);

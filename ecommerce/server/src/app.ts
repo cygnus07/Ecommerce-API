@@ -7,6 +7,7 @@ import { env } from './config/environment.js';
 import { APP_CONSTANTS } from './config/constants.js';
 import { logger } from './utils/logger.js';
 import { sendError, ErrorCodes } from './utils/apiResponse.js';
+import router from './routes/index.js'
 
 /**
  * Express application setup
@@ -47,6 +48,7 @@ export const createApp = (): Express => {
   
   // API routes will be added here
   // Example: app.use('/api/auth', authRoutes);
+  app.use('/api/v1', router)
   
   // Base route
   app.get('/', (req: Request, res: Response) => {

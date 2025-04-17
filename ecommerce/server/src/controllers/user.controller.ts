@@ -6,11 +6,20 @@ import { sendSuccess, sendError, ErrorCodes } from '../utils/apiResponse.js';
 import { env } from '../config/environment.js';
 import { logger } from '../utils/logger.js';
 
+import { 
+  RegisterInput, 
+  LoginInput, 
+  RefreshTokenInput,
+  UpdateProfileInput,
+  ChangePasswordInput,
+  AdminUpdateUserInput
+} from '../validators/user.validator.js';
+
 export const userController = {
   // Register new user
   register: async (req: Request, res: Response): Promise<void> => {
     try {
-      const { name, email, password } = req.body;
+      const { name, email, password } = req.validatedData as RegisterInput;
       
       // Check if user already exists
       const existingUser = await User.findOne({ email });
@@ -57,7 +66,7 @@ export const userController = {
   // Login user
   login: async (req: Request, res: Response): Promise<void> => {
     try {
-      const { email, password } = req.body;
+      const { email, password } = req.validatedData as LoginInput;
       
       // Find user
       const user = await User.findOne({ email });
@@ -100,7 +109,7 @@ export const userController = {
   // Refresh token
   refreshToken: async (req: Request, res: Response): Promise<void> => {
     try {
-      const { refreshToken } = req.body;
+      const { refreshToken } = req.validatedData as RefreshTokenInput;
       
       if (!refreshToken) {
         sendError(res, 'Refresh token is required', 400, ErrorCodes.BAD_REQUEST);
@@ -148,7 +157,7 @@ export const userController = {
   // Update user profile
   updateProfile: async (req: Request, res: Response): Promise<void> => {
     try {
-      const { name, email, phone, address } = req.body;
+      const { name, email, phone, address } = req.validatedData as UpdateProfileInput;
       const userId = req.user._id;
       
       // Check if email is being changed and already exists
@@ -186,7 +195,7 @@ export const userController = {
   // Change password
   changePassword: async (req: Request, res: Response): Promise<void> => {
     try {
-      const { currentPassword, newPassword } = req.body;
+      const { currentPassword, newPassword } = req.validatedData as ChangePasswordInput
       const userId = req.user._id;
       
       // Find user
@@ -266,7 +275,7 @@ export const userController = {
   updateUser: async (req: Request, res: Response): Promise<void> => {
     try {
       const userId = req.params.id;
-      const { name, email, role, isActive } = req.body;
+      const { name, email, role, isActive } = req.validatedData as AdminUpdateUserInput;
       
       // Check if email is already in use
       if (email) {
