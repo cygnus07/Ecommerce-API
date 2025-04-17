@@ -1,0 +1,276 @@
+import { Request, Response } from 'express';
+import { Cart } from '../models/cart.model.js';
+import { Product } from '../models/product.model.js';
+import { sendSuccess, sendError, ErrorCodes } from '../utils/apiResponse.js';
+import { logger } from '../utils/logger.js';
+
+export const cartController = {
+  // Get user's cart
+  getCart: async (req: Request, res: Response): Promise<void> => {
+    try {
+      const userId = req.user._id;
+      
+      // Find cart or create if doesn't exist
+      let cart = await Cart.findOne({ user: userId })
+        .populate({
+          path: 'items.product',
+          select: 'name price images stockQuantity discount'
+        });
+      
+      if (!cart) {
+        cart = new Cart({ user: userId, items: [] });
+        await cart.save();
+      }
+      
+      // Calculate cart totals
+      const subtotal = cart.items.reduce((sum, item) => {
+        const price = item.product.price;
+        const discountPrice = price - (price * (item.product.discount / 100));
+        return sum + (discountPrice * item.quantity);
+      }, 0);
+      
+      sendSuccess(res, { 
+        cart,
+        summary: {
+          subtotal,
+          itemCount: cart.items.length,
+          totalItems: cart.items.reduce((sum, item) => sum + item.quantity, 0)
+        }
+      }, 'Cart retrieved successfully');
+    } catch (error) {
+      logger.error(`Get cart error: ${error}`);
+      sendError(res, 'Failed to retrieve cart', 500);
+    }
+  },
+  
+  // Add product to cart
+  addToCart: async (req: Request, res: Response): Promise<void> => {
+    try {
+      const userId = req.user._id;
+      const { productId, quantity = 1 } = req.body;
+      
+      // Validate product
+      const product = await Product.findById(productId);
+      if (!product) {
+        sendError(res, 'Product not found', 404, ErrorCodes.NOT_FOUND);
+        return;
+      }
+      
+      // Check if product is active
+      if (!product.isActive) {
+        sendError(res, 'Product is not available', 400, ErrorCodes.BAD_REQUEST);
+        return;
+      }
+      
+      // Check stock
+      if (product.stockQuantity < quantity) {
+        sendError(res, 'Not enough stock available', 400, ErrorCodes.BAD_REQUEST);
+        return;
+      }
+      
+      // Find or create cart
+      let cart = await Cart.findOne({ user: userId });
+      if (!cart) {
+        cart = new Cart({ user: userId, items: [] });
+      }
+      
+      // Check if product already in cart
+      const itemIndex = cart.items.findIndex(item => 
+        item.product.toString() === productId
+      );
+      
+      if (itemIndex > -1) {
+        // Product exists in cart, update quantity
+        const newQuantity = cart.items[itemIndex].quantity + quantity;
+        
+        // Check if new quantity exceeds stock
+        if (newQuantity > product.stockQuantity) {
+          sendError(res, 'Requested quantity exceeds available stock', 400, ErrorCodes.BAD_REQUEST);
+          return;
+        }
+        
+        cart.items[itemIndex].quantity = newQuantity;
+      } else {
+        // Product is not in cart, add new item
+        cart.items.push({
+          product: productId,
+          quantity
+        });
+      }
+      
+      // Save cart
+      await cart.save();
+      
+      // Populate product details for response
+      await cart.populate({
+        path: 'items.product',
+        select: 'name price images stockQuantity discount'
+      });
+      
+      // Calculate cart totals
+      const subtotal = cart.items.reduce((sum, item) => {
+        const price = item.product.price;
+        const discountPrice = price - (price * (item.product.discount / 100));
+        return sum + (discountPrice * item.quantity);
+      }, 0);
+      
+      sendSuccess(res, { 
+        cart,
+        summary: {
+          subtotal,
+          itemCount: cart.items.length,
+          totalItems: cart.items.reduce((sum, item) => sum + item.quantity, 0)
+        }
+      }, 'Product added to cart successfully');
+    } catch (error) {
+      logger.error(`Add to cart error: ${error}`);
+      sendError(res, 'Failed to add product to cart', 500);
+    }
+  },
+  
+  // Update cart item quantity
+  updateCartItem: async (req: Request, res: Response): Promise<void> => {
+    try {
+      const userId = req.user._id;
+      const { productId, quantity } = req.body;
+      
+      if (quantity < 1) {
+        sendError(res, 'Quantity must be at least 1', 400, ErrorCodes.BAD_REQUEST);
+        return;
+      }
+      
+      // Find cart
+      const cart = await Cart.findOne({ user: userId });
+      if (!cart) {
+        sendError(res, 'Cart not found', 404, ErrorCodes.NOT_FOUND);
+        return;
+      }
+      
+      // Find item in cart
+      const itemIndex = cart.items.findIndex(item => 
+        item.product.toString() === productId
+      );
+      
+      if (itemIndex === -1) {
+        sendError(res, 'Product not found in cart', 404, ErrorCodes.NOT_FOUND);
+        return;
+      }
+      
+      // Check stock
+      const product = await Product.findById(productId);
+      if (!product) {
+        sendError(res, 'Product not found', 404, ErrorCodes.NOT_FOUND);
+        return;
+      }
+      
+      if (quantity > product.stockQuantity) {
+        sendError(res, 'Requested quantity exceeds available stock', 400, ErrorCodes.BAD_REQUEST);
+        return;
+      }
+      
+      // Update quantity
+      cart.items[itemIndex].quantity = quantity;
+      
+      // Save cart
+      await cart.save();
+      
+      // Populate product details for response
+      await cart.populate({
+        path: 'items.product',
+        select: 'name price images stockQuantity discount'
+      });
+      
+      // Calculate cart totals
+      const subtotal = cart.items.reduce((sum, item) => {
+        const price = item.product.price;
+        const discountPrice = price - (price * (item.product.discount / 100));
+        return sum + (discountPrice * item.quantity);
+      }, 0);
+      
+      sendSuccess(res, { 
+        cart,
+        summary: {
+          subtotal,
+          itemCount: cart.items.length,
+          totalItems: cart.items.reduce((sum, item) => sum + item.quantity, 0)
+        }
+      }, 'Cart updated successfully');
+    } catch (error) {
+      logger.error(`Update cart item error: ${error}`);
+      sendError(res, 'Failed to update cart', 500);
+    }
+  },
+  
+  // Remove item from cart
+  removeFromCart: async (req: Request, res: Response): Promise<void> => {
+    try {
+      const userId = req.user._id;
+      const { productId } = req.params;
+      
+      // Find cart
+      const cart = await Cart.findOne({ user: userId });
+      if (!cart) {
+        sendError(res, 'Cart not found', 404, ErrorCodes.NOT_FOUND);
+        return;
+      }
+      
+      // Remove item
+      cart.items = cart.items.filter(item => 
+        item.product.toString() !== productId
+      );
+      
+      // Save cart
+      await cart.save();
+      
+      // Populate product details for response
+      await cart.populate({
+        path: 'items.product',
+        select: 'name price images stockQuantity discount'
+      });
+      
+      // Calculate cart totals
+      const subtotal = cart.items.reduce((sum, item) => {
+        const price = item.product.price;
+        const discountPrice = price - (price * (item.product.discount / 100));
+        return sum + (discountPrice * item.quantity);
+      }, 0);
+      
+      sendSuccess(res, { 
+        cart,
+        summary: {
+          subtotal,
+          itemCount: cart.items.length,
+          totalItems: cart.items.reduce((sum, item) => sum + item.quantity, 0)
+        }
+      }, 'Item removed from cart successfully');
+    } catch (error) {
+      logger.error(`Remove from cart error: ${error}`);
+      sendError(res, 'Failed to remove item from cart', 500);
+    }
+  },
+  
+  // Clear cart
+  clearCart: async (req: Request, res: Response): Promise<void> => {
+    try {
+      const userId = req.user._id;
+      
+      // Find cart
+      const cart = await Cart.findOne({ user: userId });
+      if (!cart) {
+        sendError(res, 'Cart not found', 404, ErrorCodes.NOT_FOUND);
+        return;
+      }
+      
+      // Clear items
+      cart.items = [];
+      
+      // Save cart
+      await cart.save();
+      
+      sendSuccess(res, { cart }, 'Cart cleared successfully');
+    } catch (error) {
+      logger.error(`Clear cart error: ${error}`);
+      sendError(res, 'Failed to clear cart', 500);
+    }
+  }
+};
