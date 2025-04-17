@@ -19,7 +19,7 @@ export const userController = {
   // Register new user
   register: async (req: Request, res: Response): Promise<void> => {
     try {
-      const { firstName, lastName, email, password } = req.validatedData as RegisterInput;
+      const { firstName, lastName, email, password, role } = req.validatedData as RegisterInput;
       
       // Check if user already exists
       const existingUser = await User.findOne({ email });
@@ -35,7 +35,7 @@ export const userController = {
         lastName,
         email,
         password: hashedPassword,
-        role: 'customer' // Default role
+        role: role || 'customer' // Default role
       });
       
       await user.save();

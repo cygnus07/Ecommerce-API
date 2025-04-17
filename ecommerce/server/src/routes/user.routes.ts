@@ -30,5 +30,4 @@ router.get('/', userController.getAllUsers);
 router.get('/:id', userController.getUserById);
 router.put('/:id', validate(adminUpdateUserSchema), userController.updateUser);
 router.delete('/:id', userController.deleteUser);
-
 export default router;

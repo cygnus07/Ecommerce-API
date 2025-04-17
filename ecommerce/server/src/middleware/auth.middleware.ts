@@ -22,7 +22,7 @@ export const authenticate = async (req: Request, res: Response, next: NextFuncti
     if (!authHeader) {
       throw new Error('Missing authorization header');
     }
-    
+
     if (!authHeader || !authHeader.startsWith('Bearer ')) {
       const error = new Error('Authentication required');
       (error as any).statusCode = 401;
@@ -61,7 +61,7 @@ export const authenticate = async (req: Request, res: Response, next: NextFuncti
 export const authorize = (...roles: string[]) => {
   return (req: Request, res: Response, next: NextFunction) => {
     try {
-      // console.log(req.user)
+      console.log(req.user)
       if (!req.user) {
         
         const error = new Error('Authentication required');
