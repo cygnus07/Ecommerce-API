@@ -276,7 +276,7 @@ export const userController = {
   updateUser: async (req: Request, res: Response): Promise<void> => {
     try {
       const userId = req.params.id;
-      const { name, email, role, isActive } = req.validatedData as AdminUpdateUserInput;
+      const { firstName, lastName, email, role } = req.validatedData as AdminUpdateUserInput;
       
       // Check if email is already in use
       if (email) {
@@ -289,7 +289,7 @@ export const userController = {
       
       const updatedUser = await User.findByIdAndUpdate(
         userId,
-        { name, email, role, isActive },
+        { firstName, lastName, email, role },
         { new: true, runValidators: true }
       ).select('-password');
       
