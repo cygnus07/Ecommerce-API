@@ -1,104 +1,72 @@
-import Joi from 'joi';
+import { z } from 'zod';
 
 // Common validation patterns
 const namePattern = /^[a-zA-Z0-9\s\-&]+$/;
 
-export const createCategorySchema = Joi.object({
-  name: Joi.string()
-    .pattern(namePattern)
-    .min(2)
-    .max(50)
-    .required()
-    .messages({
-      'string.empty': 'Name is required',
-      'string.pattern.base': 'Name can only contain letters, numbers, spaces, hyphens, and ampersands',
-      'string.min': 'Name must be at least 2 characters',
-      'string.max': 'Name cannot exceed 50 characters'
-    }),
-  description: Joi.string()
-    .max(500)
+// Helper functions for error messages
+const requiredError = (field: string) => `${field} is required`;
+const lengthError = (field: string, length: number) => 
+  `${field} must be ${length} characters long`;
+const minError = (field: string, min: number) => 
+  `${field} must be at least ${min} characters`;
+const maxError = (field: string, max: number) => 
+  `${field} cannot exceed ${max} characters`;
+
+export const createCategorySchema = z.object({
+  name: z.string()
+    .min(2, minError('Name', 2))
+    .max(50, maxError('Name', 50))
+    .regex(namePattern, 'Name can only contain letters, numbers, spaces, hyphens, and ampersands'),
+  description: z.string()
+    .max(500, maxError('Description', 500))
+    .optional(),
+  parentId: z.string()
+    .length(24, lengthError('Parent ID', 24))
+    .regex(/^[0-9a-fA-F]+$/, 'Parent ID must be a valid hexadecimal')
     .optional()
-    .messages({
-      'string.max': 'Description cannot exceed 500 characters'
-    }),
-  parentId: Joi.string()
-    .hex()
-    .length(24)
-    .optional()
-    .allow(null)
-    .messages({
-      'string.hex': 'Parent ID must be a valid hexadecimal',
-      'string.length': 'Parent ID must be 24 characters long'
-    })
+    .nullable()
 });
 
-export const updateCategorySchema = Joi.object({
-  name: Joi.string()
-    .pattern(namePattern)
-    .min(2)
-    .max(50)
+export const updateCategorySchema = z.object({
+  name: z.string()
+    .min(2, minError('Name', 2))
+    .max(50, maxError('Name', 50))
+    .regex(namePattern, 'Name can only contain letters, numbers, spaces, hyphens, and ampersands')
+    .optional(),
+  description: z.string()
+    .max(500, maxError('Description', 500))
+    .optional(),
+  parentId: z.string()
+    .length(24, lengthError('Parent ID', 24))
+    .regex(/^[0-9a-fA-F]+$/, 'Parent ID must be a valid hexadecimal')
     .optional()
-    .messages({
-      'string.pattern.base': 'Name can only contain letters, numbers, spaces, hyphens, and ampersands',
-      'string.min': 'Name must be at least 2 characters',
-      'string.max': 'Name cannot exceed 50 characters'
-    }),
-  description: Joi.string()
-    .max(500)
-    .optional()
-    .messages({
-      'string.max': 'Description cannot exceed 500 characters'
-    }),
-  parentId: Joi.string()
-    .hex()
-    .length(24)
-    .optional()
-    .allow(null)
-    .messages({
-      'string.hex': 'Parent ID must be a valid hexadecimal',
-      'string.length': 'Parent ID must be 24 characters long'
-    })
-}).min(1).messages({
-  'object.min': 'At least one field must be provided to update'
+    .nullable()
+}).refine(data => Object.keys(data).length > 0, {
+  message: 'At least one field must be provided to update'
 });
 
-export const categoryIdParamsSchema = Joi.object({
-  id: Joi.string()
-    .hex()
-    .length(24)
-    .required()
-    .messages({
-      'string.hex': 'Category ID must be a valid hexadecimal',
-      'string.length': 'Category ID must be 24 characters long',
-      'any.required': 'Category ID is required'
-    })
+export const categoryIdParamsSchema = z.object({
+  id: z.string()
+    .length(24, lengthError('Category ID', 24))
+    .regex(/^[0-9a-fA-F]+$/, 'Category ID must be a valid hexadecimal')
 });
 
-export const categoryProductsQuerySchema = Joi.object({
-  page: Joi.number()
-    .integer()
-    .min(1)
-    .default(1)
-    .messages({
-      'number.base': 'Page must be a number',
-      'number.integer': 'Page must be an integer',
-      'number.min': 'Page must be at least 1'
-    }),
-  limit: Joi.number()
-    .integer()
-    .min(1)
-    .max(100)
-    .default(10)
-    .messages({
-      'number.base': 'Limit must be a number',
-      'number.integer': 'Limit must be an integer',
-      'number.min': 'Limit must be at least 1',
-      'number.max': 'Limit cannot exceed 100'
-    }),
-  tree: Joi.string()
-    .valid('true', 'false')
+export const categoryProductsQuerySchema = z.object({
+  page: z.number()
+    .int('Page must be an integer')
+    .min(1, 'Page must be at least 1')
+    .default(1),
+  limit: z.number()
+    .int('Limit must be an integer')
+    .min(1, 'Limit must be at least 1')
+    .max(100, 'Limit cannot exceed 100')
+    .default(10),
+  tree: z.enum(['true', 'false'])
     .default('false')
-    .messages({
-      'any.only': 'Tree must be either "true" or "false"'
-    })
 });
+
+// Type exports for TypeScript usage
+export type CreateCategoryInput = z.infer<typeof createCategorySchema>;
+export type UpdateCategoryInput = z.infer<typeof updateCategorySchema>;
+export type CategoryIdParams = z.infer<typeof categoryIdParamsSchema>;
+export type CategoryProductsQuery = z.infer<typeof categoryProductsQuerySchema>;

@@ -1,6 +1,6 @@
 import { Request, Response } from 'express';
-import { Category } from '../models/category.model.js';
-import { Product } from '../models/product.model.js';
+import  Category  from '../models/Category.model.js';
+import  Product  from '../models/Product.model.js';
 import { sendSuccess, sendError, ErrorCodes } from '../utils/apiResponse.js';
 import { logger } from '../utils/logger.js';
 
