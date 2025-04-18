@@ -15,14 +15,11 @@ declare global {
   }
 }
 
-export const authenticate = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+// Main authentication middleware
+const authenticate = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
   try {
     const authHeader = req.headers.authorization;
-    console.log(authHeader)
-    if (!authHeader) {
-      throw new Error('Missing authorization header');
-    }
-
+    
     if (!authHeader || !authHeader.startsWith('Bearer ')) {
       const error = new Error('Authentication required');
       (error as any).statusCode = 401;
@@ -31,14 +28,6 @@ export const authenticate = async (req: Request, res: Response, next: NextFuncti
     }
     
     const token = authHeader.split(' ')[1];
-    
-    if (!token) {
-      const error = new Error('Authentication required');
-      (error as any).statusCode = 401;
-      (error as any).code = ErrorCodes.UNAUTHORIZED;
-      throw error;
-    }
-    
     const decoded = jwt.verify(token, env.JWT_SECRET) as any;
     const user = await User.findById(decoded.userId);
     
@@ -54,32 +43,39 @@ export const authenticate = async (req: Request, res: Response, next: NextFuncti
     next();
   } catch (error) {
     logger.error(`Auth middleware error: ${error}`);
-    next(error); // Pass to error handler
+    next(error);
   }
 };
 
-export const authorize = (...roles: string[]) => {
+// Authorization middleware
+const authorize = (...roles: string[]) => {
   return (req: Request, res: Response, next: NextFunction) => {
-    try {
-      console.log(req.user)
-      if (!req.user) {
-        
-        const error = new Error('Authentication required');
-        (error as any).statusCode = 401;
-        (error as any).code = ErrorCodes.UNAUTHORIZED;
-        throw error;
-      }
-      
-      if (!roles.includes(req.user.role)) {
-        const error = new Error('Not authorized to access this resource');
-        (error as any).statusCode = 403;
-        (error as any).code = ErrorCodes.FORBIDDEN;
-        throw error;
-      }
-      
-      next();
-    } catch (error) {
-      next(error); // Pass to error handler
+    if (!req.user) {
+      const error = new Error('Authentication required');
+      (error as any).statusCode = 401;
+      (error as any).code = ErrorCodes.UNAUTHORIZED;
+      return next(error);
     }
+    
+    if (!roles.includes(req.user.role)) {
+      const error = new Error('Not authorized to access this resource');
+      (error as any).statusCode = 403;
+      (error as any).code = ErrorCodes.FORBIDDEN;
+      return next(error);
+    }
+    
+    next();
   };
 };
+
+// Combined auth object
+export const auth = {
+  authenticate,
+  authorize,
+  // Common role-based middleware combinations
+  admin: [authenticate, authorize(['admin'])],
+  user: [authenticate, authorize(['user'])],
+};
+
+// Also export individual functions if needed elsewhere
+export { authenticate, authorize };

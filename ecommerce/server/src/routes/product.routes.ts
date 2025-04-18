@@ -7,21 +7,29 @@ import {
   productIdParamsSchema,
   productQuerySchema
 } from '../validators/product.validator.js';
-import { upload } from '../utils/fileUpload.js';
-import  auth  from '../middlewares/auth.middleware.js';
-import { checkPermission } from '../middlewares/permission.middleware.js';
+import { upload } from "../utils/fileUpload.js";
+import { auth } from '../middlewares/auth.middleware.js'; // Now importing the auth object
 
 const router = Router();
 
-// Create a new product (Admin only)
+// Option 1: Using the combined admin middleware
 router.post(
   '/',
-  auth,
-  checkPermission('admin'),
+  auth.admin, // Uses both authenticate and authorize
   upload.array('images', 5),
   validate(productCreateSchema),
   productController.createProduct
 );
+
+// Option 2: Using separate middlewares (alternative)
+// router.post(
+//   '/',
+//   auth.authenticate,
+//   auth.authorize(['admin']),
+//   upload.array('images', 5),
+//   validate(productCreateSchema),
+//   productController.createProduct
+// );
 
 // Get all products (Public)
 router.get(
@@ -40,8 +48,7 @@ router.get(
 // Update a product (Admin only)
 router.put(
   '/:id',
-  auth,
-  checkPermission('admin'),
+  auth.admin, // Using combined middleware
   upload.array('images', 5),
   validate(productIdParamsSchema, 'params'),
   validate(productUpdateSchema),
@@ -51,8 +58,7 @@ router.put(
 // Delete a product (Admin only)
 router.delete(
   '/:id',
-  auth,
-  checkPermission('admin'),
+  auth.admin, // Using combined middleware
   validate(productIdParamsSchema, 'params'),
   productController.deleteProduct
 );

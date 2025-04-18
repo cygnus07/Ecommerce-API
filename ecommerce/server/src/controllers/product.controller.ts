@@ -24,7 +24,7 @@ export const productController = {
       }
       
       // Handle image uploads
-      let images = [];
+      let images: string[] = [];
       if (req.files && Array.isArray(req.files)) {
         images = (req.files as Express.MulterS3.File[]).map(file => file.location);
       }
@@ -38,7 +38,7 @@ export const productController = {
         sku,
         stockQuantity: stockQuantity || 0,
         isActive: isActive !== undefined ? isActive : true,
-        tags: tags ? tags.split(',').map(tag => tag.trim()) : [],
+        tags: tags ? tags.split(',').map((tag: string) => tag.trim()) : [],
         images,
         specifications: specifications ? JSON.parse(specifications) : {},
         discount: discount || 0,
@@ -195,11 +195,11 @@ export const productController = {
       }
       
       // Handle image uploads and removals
-      let images = [...product.images];
+      let images: string[] = [...product.images];
       
       // Remove selected images if any
       if (removeImages) {
-        const imagesToRemove = removeImages.split(',').map(img => img.trim());
+        const imagesToRemove = removeImages.split(',').map((img: string) => img.trim());
         images = images.filter(img => !imagesToRemove.includes(img));
       }
       
@@ -220,7 +220,7 @@ export const productController = {
           sku: sku || product.sku,
           stockQuantity: stockQuantity !== undefined ? stockQuantity : product.stockQuantity,
           isActive: isActive !== undefined ? isActive : product.isActive,
-          tags: tags ? tags.split(',').map(tag => tag.trim()) : product.tags,
+          tags: tags ? tags.split(',').map((tag: string) => tag.trim()) : product.tags,
           images: images,
           specifications: specifications ? JSON.parse(specifications) : product.specifications,
           discount: discount !== undefined ? discount : product.discount
