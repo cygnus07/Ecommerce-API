@@ -108,7 +108,7 @@ const productSchema = new Schema<ProductDocument>({
 
 // Indexes
 productSchema.index({ name: 'text', description: 'text', shortDescription: 'text', tags: 'text' });
-productSchema.index({ slug: 1 }, { unique: true });
+// productSchema.index({ slug: 1 }, { unique: true });
 productSchema.index({ category: 1 });
 productSchema.index({ status: 1 });
 productSchema.index({ 'variants.sku': 1 });

@@ -73,8 +73,8 @@ export const auth = {
   authenticate,
   authorize,
   // Common role-based middleware combinations
-  admin: [authenticate, authorize(['admin'])],
-  user: [authenticate, authorize(['user'])],
+  admin: [authenticate, authorize('admin')],
+  user: [authenticate, authorize('user')],
 };
 
 // Also export individual functions if needed elsewhere

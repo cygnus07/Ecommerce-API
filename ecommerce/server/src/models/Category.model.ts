@@ -46,7 +46,7 @@ const categorySchema = new Schema<CategoryDocument>({
 });
 
 // Indexes
-categorySchema.index({ slug: 1 }, { unique: true });
+// categorySchema.index({ slug: 1 }, { unique: true });
 categorySchema.index({ parent: 1 });
 categorySchema.index({ level: 1 });
 categorySchema.index({ isActive: 1 });
