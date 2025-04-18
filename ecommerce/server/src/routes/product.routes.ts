@@ -34,14 +34,14 @@ router.post(
 // Get all products (Public)
 router.get(
   '/',
-  validate(productQuerySchema, 'query'),
+  validate(productQuerySchema),
   productController.getAllProducts
 );
 
 // Get a single product (Public)
 router.get(
   '/:id',
-  validate(productIdParamsSchema, 'params'),
+  validate(productIdParamsSchema),
   productController.getProductById
 );
 
@@ -50,7 +50,7 @@ router.put(
   '/:id',
   auth.admin, // Using combined middleware
   upload.array('images', 5),
-  validate(productIdParamsSchema, 'params'),
+  validate(productIdParamsSchema),
   validate(productUpdateSchema),
   productController.updateProduct
 );
@@ -59,7 +59,7 @@ router.put(
 router.delete(
   '/:id',
   auth.admin, // Using combined middleware
-  validate(productIdParamsSchema, 'params'),
+  validate(productIdParamsSchema),
   productController.deleteProduct
 );
 

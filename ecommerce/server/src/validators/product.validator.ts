@@ -55,10 +55,7 @@ export const productCreateSchema = z.object({
 
 export const productUpdateSchema = productCreateSchema
   .partial()
-  .refine(data => Object.keys(data).length > 0, {
-    message: 'At least one field must be provided to update'
-  })
-  .extend({
+  .merge(z.object({
     name: z.string()
       .min(2, minError('Product name', 2))
       .max(100, maxError('Product name', 100))
@@ -73,8 +70,9 @@ export const productUpdateSchema = productCreateSchema
     sku: z.string()
       .regex(skuPattern, 'SKU can only contain uppercase letters, numbers and hyphens')
       .optional()
-  });
+  }))
 
+  
 export const productQuerySchema = z.object({
   page: z.number()
     .int('Page must be an integer')
