@@ -1,6 +1,6 @@
 import { Router } from 'express';
 import { productController } from '../controllers/product.controller.js';
-import { validate } from '../middlewares/validate.middleware.js';
+import { validate } from '../middlewares/validation.middleware.js';
 import { 
   productCreateSchema, 
   productUpdateSchema, 
@@ -8,7 +8,7 @@ import {
   productQuerySchema
 } from '../validators/product.validator.js';
 import { upload } from '../utils/fileUpload.js';
-import { auth } from '../middlewares/auth.middleware.js';
+import  auth  from '../middlewares/auth.middleware.js';
 import { checkPermission } from '../middlewares/permission.middleware.js';
 
 const router = Router();

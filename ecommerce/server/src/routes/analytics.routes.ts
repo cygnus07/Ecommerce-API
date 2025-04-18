@@ -1,7 +1,7 @@
 // src/routes/analytics.routes.ts
 import express from 'express';
-import { authenticate } from '../middleware/auth.middleware.js';
-import { authorize } from '../middleware/role.middleware.js';
+import { authenticate } from '../middlewares/auth.middleware.js';
+import { authorize } from '../middlewares/role.middleware.js';
 import { analyticsService } from '../services/analytics.service.js';
 import { sendSuccess, sendError, ErrorCodes } from '../utils/apiResponse.js';
 import { logger } from '../utils/logger.js';

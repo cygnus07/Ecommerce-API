@@ -1,11 +1,11 @@
 // src/routes/inventoryActivity.routes.ts
 import express from 'express';
 import { inventoryActivityController } from '../controllers/inventoryActivity.controller.js';
-import { authenticate } from '../middleware/auth.middleware.js';
-import { authorize } from '../middleware/role.middleware.js';
-import { validate } from '../middleware/validation.middleware.js';
+import { authenticate } from '../middlewares/auth.middleware.js';
+import { authorize } from '../middlewares/role.middleware.js';
+import { validate } from '../middlewares/validation.middleware.js';
 import { inventoryActivityValidators } from '../validators/inventoryActivity.validator.js';
-import { paginate } from '../middleware/pagination.middleware.js';
+import { paginate } from '../middlewares/pagination.middleware.js';
 
 const router = express.Router();
 

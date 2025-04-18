@@ -1,9 +1,9 @@
 // src/routes/coupon.routes.ts
 import express from 'express';
 import { couponController } from '../controllers/coupon.controller.js';
-import { authenticate } from '../middleware/auth.middleware.js';
-import { authorize } from '../middleware/role.middleware.js';
-import { validate } from '../middleware/validation.middleware.js';
+import { authenticate } from '../middlewares/auth.middleware.js';
+import { authorize } from '../middlewares/role.middleware.js';
+import { validate } from '../middlewares/validation.middleware.js';
 import { couponValidators } from '../validators/coupon.validator.js';
 
 const router = express.Router();

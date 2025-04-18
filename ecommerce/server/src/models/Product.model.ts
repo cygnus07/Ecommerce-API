@@ -9,15 +9,15 @@ const productVariantOptionSchema = new Schema<ProductVariantOption>({
 
 // Product variant schema
 const productVariantSchema = new Schema<ProductVariant>({
-  sku: { type: String, required: true },
-  price: { type: Number, required: true, min: 0 },
-  compareAtPrice: { type: Number, min: 0 },
-  options: [productVariantOptionSchema],
-  inventory: { type: Number, default: 0, min: 0 },
-  images: [{ type: String }],
-  weight: { type: Number },
-  barcode: { type: String },
-  isDefault: { type: Boolean, default: false }
+  sku: { type: String, required: true },               // Stock Keeping Unit (unique identifier)
+  price: { type: Number, required: true, min: 0 },     // Current price
+  compareAtPrice: { type: Number, min: 0 },            // Original price for showing discounts
+  options: [productVariantOptionSchema],               // Array of variant options
+  inventory: { type: Number, default: 0, min: 0 },     // Stock count
+  images: [{ type: String }],                          // Variant-specific images
+  weight: { type: Number },                            // Product weight
+  barcode: { type: String },                          // Product barcode
+  isDefault: { type: Boolean, default: false }        // Is this the default variant?
 }, { _id: true, timestamps: false });
 
 // Product schema
@@ -27,7 +27,7 @@ const productSchema = new Schema<ProductDocument>({
     required: true, 
     trim: true 
   },
-  slug: { 
+  slug: {  // url friendly version of the name
     type: String, 
     required: true, 
     unique: true, 

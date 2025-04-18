@@ -1,8 +1,8 @@
 // src/routes/wishlist.routes.ts
 import express from 'express';
 import { wishlistController } from '../controllers/wishlist.controller.js';
-import { authenticate } from '../middleware/auth.middleware.js';
-import { validate } from '../middleware/validation.middleware.js';
+import { authenticate } from '../middlewares/auth.middleware.js';
+import { validate } from '../middlewares/validation.middleware.js';
 import { wishlistValidators } from '../validators/wishlist.validator.js';
 
 const router = express.Router();

@@ -1,8 +1,8 @@
 // src/routes/review.routes.ts
 import express from 'express';
 import { reviewController } from '../controllers/review.controller.js';
-import { authenticate } from '../middleware/auth.middleware.js';
-import { validate } from '../middleware/validation.middleware.js';
+import { authenticate } from '../middlewares/auth.middleware.js';
+import { validate } from '../middlewares/validation.middleware.js';
 import { reviewValidators } from '../validators/review.validator.js';
 
 const router = express.Router();

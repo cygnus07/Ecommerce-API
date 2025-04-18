@@ -3,7 +3,7 @@ import express from 'express';
 import { searchService } from '../services/search.service.js';
 import { sendSuccess, sendError } from '../utils/apiResponse.js';
 import { logger } from '../utils/logger.js';
-import { paginate } from '../middleware/pagination.middleware.js';
+import { paginate } from '../middlewares/pagination.middleware.js';
 
 const router = express.Router();
 
