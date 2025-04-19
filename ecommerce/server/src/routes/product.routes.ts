@@ -16,7 +16,7 @@ const router = Router();
 router.post(
   '/',
   auth.admin, // Uses both authenticate and authorize
-  upload.array('images', 5),
+  // upload.array('images', 5),
   validate(productCreateSchema),
   productController.createProduct
 );
@@ -34,7 +34,9 @@ router.post(
 // Get all products (Public)
 router.get(
   '/',
-  validate(productQuerySchema),
+  // auth.admin,
+
+  validate(productQuerySchema, 'query'),
   productController.getAllProducts
 );
 

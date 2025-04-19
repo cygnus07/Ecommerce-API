@@ -63,7 +63,7 @@ const productSchema = new Schema<ProductDocument>({
   },
   featuredImage: { 
     type: String, 
-    required: true 
+    // required: true 
   },
   images: [{ 
     type: String 

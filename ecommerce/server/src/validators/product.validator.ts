@@ -72,40 +72,22 @@ export const productUpdateSchema = productCreateSchema
       .optional()
   }))
 
+
+
+
+  export const productQuerySchema = z.object({
+    page: z.coerce.number().min(1).optional(),
+    limit: z.coerce.number().min(1).optional(),
+    sort: z.string().optional(),
+    order: z.enum(['asc', 'desc']).optional(),
+    category: z.string().optional(),
+    minPrice: z.coerce.number().optional(),
+    maxPrice: z.coerce.number().optional(),
+    search: z.string().optional(),
+    tags: z.string().optional(),
+    inStock: z.enum(['true', 'false']).optional(),
+  });
   
-export const productQuerySchema = z.object({
-  page: z.number()
-    .int('Page must be an integer')
-    .min(1, 'Page must be at least 1')
-    .default(1),
-  limit: z.number()
-    .int('Limit must be an integer')
-    .min(1, 'Limit must be at least 1')
-    .max(100, 'Limit cannot exceed 100')
-    .default(10),
-  sort: z.enum(['name', 'price', 'createdAt', 'updatedAt', 'stockQuantity'])
-    .default('createdAt'),
-  order: z.enum(['asc', 'desc'])
-    .default('desc'),
-  category: z.string()
-    .length(24, lengthError('Category ID', 24))
-    .regex(/^[0-9a-fA-F]+$/, 'Category ID must be a valid hexadecimal')
-    .optional(),
-  minPrice: z.number()
-    .min(0, 'Minimum price cannot be negative')
-    .optional(),
-  maxPrice: z.number()
-    .min(0, 'Maximum price cannot be negative')
-    .optional(),
-  search: z.string()
-    .max(100, maxError('Search query', 100))
-    .optional(),
-  tags: z.string()
-    .max(500, maxError('Tags filter', 500))
-    .optional(),
-  inStock: z.enum(['true', 'false'])
-    .optional()
-});
 
 // Type exports for TypeScript usage
 export type ProductIdParams = z.infer<typeof productIdParamsSchema>;

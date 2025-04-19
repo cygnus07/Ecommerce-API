@@ -9,10 +9,11 @@ export const productController = {
   createProduct: async (req: Request, res: Response): Promise<void> => {
     try {
       const { 
-        name, description, price, categoryId, sku, 
+        name,slug, description, price, categoryId, sku, 
         stockQuantity, isActive, tags, specifications,
         discount
       } = req.body;
+      console.log(req.body, req.files);
       
       // Check if category exists
       if (categoryId) {
@@ -32,6 +33,7 @@ export const productController = {
       // Create product
       const product = new Product({
         name,
+        slug,
         description,
         price,
         category: categoryId,
@@ -40,11 +42,12 @@ export const productController = {
         isActive: isActive !== undefined ? isActive : true,
         tags: tags ? tags.split(',').map((tag: string) => tag.trim()) : [],
         images,
-        specifications: specifications ? JSON.parse(specifications) : {},
+        specifications: typeof specifications === 'string' ? JSON.parse(specifications) : specifications,
         discount: discount || 0,
         createdBy: req.user._id
       });
       
+      console.log(req.user._id, 'user id');
       await product.save();
       
       sendSuccess(res, { product }, 'Product created successfully', 201);
@@ -56,6 +59,7 @@ export const productController = {
   
   // Get all products with filtering and pagination
   getAllProducts: async (req: Request, res: Response): Promise<void> => {
+    console.log(req.query)
     try {
       const {
         page = 1,
@@ -69,6 +73,8 @@ export const productController = {
         tags,
         inStock
       } = req.query as any;
+
+      // console.log(req.query)
       
       // Build query
       const query: any = {};
@@ -103,10 +109,13 @@ export const productController = {
         query.stockQuantity = { $gt: 0 };
       }
       
-      // Visibility for non-admin users
-      if (!req.user || req.user.role !== 'admin') {
-        query.isActive = true;
-      }
+      // console.log(req.user.role)
+     // Visibility for non-admin users
+      // if (!req.user || req.user.role !== 'admin') {
+      //   query.isActive = true;
+      // } isActive field is missing in the product model
+
+     
       
       // Pagination
       const skip = (parseInt(page) - 1) * parseInt(limit);
