@@ -42,11 +42,19 @@ const categorySchema = new Schema<CategoryDocument>({
     default: true 
   }
 }, { 
-  timestamps: true 
+  timestamps: true,
+  toJSON: { virtuals: true },
+  toObject: { virtuals: true }
+});
+
+// ✅ Virtual field for subcategories
+categorySchema.virtual('subcategories', {
+  ref: 'Category',
+  localField: '_id',
+  foreignField: 'parent'
 });
 
 // Indexes
-// categorySchema.index({ slug: 1 }, { unique: true });
 categorySchema.index({ parent: 1 });
 categorySchema.index({ level: 1 });
 categorySchema.index({ isActive: 1 });

@@ -13,7 +13,7 @@ const router = Router();
 
 // Public routes
 router.get('/', categoryController.getAllCategories);
-router.get('/:id', validate(categoryIdParamsSchema), categoryController.getCategoryById);
+router.get('/:id', validate(categoryIdParamsSchema, 'params'), categoryController.getCategoryById);
 router.get(
   '/:id/products',
   validate(categoryIdParamsSchema),

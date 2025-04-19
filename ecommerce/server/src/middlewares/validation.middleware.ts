@@ -10,11 +10,22 @@ declare global {
   }
 }
 
-export const validate = <T extends z.ZodTypeAny>(schema: T): RequestHandler => {
+export const validate = <T extends z.ZodTypeAny>(
+  schema: T, 
+  source: 'body' | 'params' | 'query' = 'body'
+): RequestHandler => {
   return async (req: Request, res: Response, next: NextFunction) => {
     try {
-      // Validate just the request body directly
-      req.validatedData = await schema.parseAsync(req.body);
+      let data;
+      if (source === 'body') {
+        data = req.body;
+      } else if (source === 'params') {
+        data = req.params;
+      } else if (source === 'query') {
+        data = req.query;
+      }
+
+      req.validatedData = await schema.parseAsync(data);
       next();
     } catch (error) {
       if (error instanceof ZodError) {

@@ -3,6 +3,9 @@ import  Category  from '../models/Category.model.js';
 import  Product  from '../models/Product.model.js';
 import { sendSuccess, sendError, ErrorCodes } from '../utils/apiResponse.js';
 import { logger } from '../utils/logger.js';
+import slugify from 'slugify'
+
+const slugifyFn = slugify.default || slugify; // Fallback for older versions of slugify
 
 export const categoryController = {
   // Create a new category
@@ -26,9 +29,16 @@ export const categoryController = {
         }
       }
       
+      const slug = slugifyFn(name, { lower: true, strict: true });
+      const existingSlug = await Category.findOne({ slug})
+      if (existingSlug) {
+        sendError(res, 'Category with this slug already exists', 409, ErrorCodes.CONFLICT);
+        return;
+      }
       // Create category
       const category = new Category({
         name,
+        slug,
         description,
         parent: parentId || null
       });
@@ -73,7 +83,9 @@ export const categoryController = {
   // Get a single category by ID
   getCategoryById: async (req: Request, res: Response): Promise<void> => {
     try {
+      console.log(req.params)
       const categoryId = req.params.id;
+      console.log(categoryId)
       
       const category = await Category.findById(categoryId)
         .populate('parent', 'name')
