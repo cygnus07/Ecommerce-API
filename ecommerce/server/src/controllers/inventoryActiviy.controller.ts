@@ -1,6 +1,6 @@
 import { Request, Response } from 'express';
-import { InventoryActivity } from '../models/inventoryActivity.model.js';
-import { Product } from '../models/product.model.js';
+import  InventoryActivity  from '../models/InventoryActivity.model.js';
+import  Product  from '../models/Product.model.js';
 import { sendSuccess, sendError, ErrorCodes } from '../utils/apiResponse.js';
 import { logger } from '../utils/logger.js';
 

@@ -1,8 +1,6 @@
-// src/routes/inventoryActivity.routes.ts
 import express from 'express';
-import { inventoryActivityController } from '../controllers/inventoryActivity.controller.js';
-import { authenticate } from '../middlewares/auth.middleware.js';
-import { authorize } from '../middlewares/role.middleware.js';
+import { inventoryActivityController } from "../controllers/inventoryActivity.controller.js";
+import { authenticate, authorize } from '../middlewares/auth.middleware.js';
 import { validate } from '../middlewares/validation.middleware.js';
 import { inventoryActivityValidators } from '../validators/inventoryActivity.validator.js';
 import { paginate } from '../middlewares/pagination.middleware.js';
@@ -11,26 +9,31 @@ const router = express.Router();
 
 // All inventory routes require authentication and admin role
 router.use(authenticate);
-router.use(authorize(['admin']));
+router.use(authorize('admin'));
 
 router.post(
   '/', 
-  validate(inventoryActivityValidators.logActivity), 
+  validate(inventoryActivityValidators.logActivity),
   inventoryActivityController.logActivity
 );
 
 router.get(
   '/product/:productId', 
-  validate(inventoryActivityValidators.getProductActivities),
+  validate(inventoryActivityValidators.getProductActivities.params, 'params'),
+  validate(inventoryActivityValidators.getProductActivities.query, 'query'),
   paginate,
   inventoryActivityController.getProductActivities
 );
 
-router.get('/', paginate, inventoryActivityController.getAllActivities);
+router.get(
+  '/',
+  paginate,
+  inventoryActivityController.getAllActivities
+);
 
 router.get(
   '/summary', 
-  validate(inventoryActivityValidators.getActivitySummary),
+  validate(inventoryActivityValidators.getActivitySummary.query, 'query'),
   inventoryActivityController.getActivitySummary
 );
 
