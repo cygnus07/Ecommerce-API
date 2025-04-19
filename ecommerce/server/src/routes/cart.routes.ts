@@ -1,7 +1,7 @@
 import { Router } from 'express';
 import { cartController } from '../controllers/cart.controller.js';
 import { authenticate } from '../middlewares/auth.middleware.js';
-import { validate } from '../middlewares/validate.middleware.js';
+import { validate } from '../middlewares/validation.middleware.js';
 import { 
     addToCartSchema, 
     updateCartItemSchema,
@@ -16,7 +16,7 @@ router.use(authenticate);
 router.get('/', cartController.getCart);
 
 // POST /api/cart - Add product to cart
-router.post('/', validate(addToCartSchema), cartController.addToCart);
+router.post('/', validate(addToCartSchema, 'body'), cartController.addToCart);
 
 // PUT /api/cart - Update cart item quantity
 router.put('/', validate(updateCartItemSchema), cartController.updateCartItem);

@@ -19,11 +19,9 @@ const cartItemSchema = new Schema<CartItem>({
   },
   price: { 
     type: Number, 
-    required: true 
   },
   name: { 
     type: String, 
-    required: true 
   },
   image: { 
     type: String 
@@ -99,8 +97,8 @@ cartSchema.pre('save', function(next) {
 });
 
 // Ensure only one cart per user or guest
-cartSchema.index({ user: 1 }, { unique: true, sparse: true });
-cartSchema.index({ guestId: 1 }, { unique: true, sparse: true });
+// cartSchema.index({ user: 1 }, { unique: true, sparse: true });
+// cartSchema.index({ guestId: 1 }, { unique: true, sparse: true });
 
 // Index for expiration
 cartSchema.index({ expiresAt: 1 }, { expireAfterSeconds: 0 });

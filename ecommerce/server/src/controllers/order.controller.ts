@@ -1,9 +1,9 @@
 import { Request, Response } from 'express';
 import Stripe from 'stripe';
-import { Order } from '../models/order.model.js';
-import { Cart } from '../models/cart.model.js';
-import { Product } from '../models/product.model.js';
-import { InventoryActivity } from '../models/inventoryActivity.model.js';
+import  Order  from '../models/Order.model.js';
+import  Cart  from '../models/Cart.model.js';
+import  Product  from '../models/Product.model.js';
+import  InventoryActivity  from '../models/InventoryActivity.model.js';
 import { sendSuccess, sendError, ErrorCodes } from '../utils/apiResponse.js';
 import { env } from '../config/environment.js';
 import { logger } from '../utils/logger.js';

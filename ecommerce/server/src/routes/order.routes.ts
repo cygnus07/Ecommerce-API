@@ -1,14 +1,14 @@
 import { Router } from 'express';
 import { orderController } from '../controllers/order.controller.js';
 import { authenticate, authorize } from '../middlewares/auth.middleware.js';
-import { validate } from '../middlewares/validate.middleware.js';
+import { validate } from '../middlewares/validation.middleware.js';
 import { 
   createOrderSchema,
   confirmOrderSchema,
   orderIdParamsSchema,
   orderStatusSchema,
   ordersQuerySchema
-} from '../validations/order.validator.js';
+} from '../validators/order.validator.js';
 
 const router = Router();
 

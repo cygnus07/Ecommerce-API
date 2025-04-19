@@ -1,86 +1,68 @@
-import Joi from 'joi';
+import { z } from 'zod';
 
 // Common validation patterns
 const addressPattern = /^[a-zA-Z0-9\s\.,'-]{5,100}$/;
 const couponPattern = /^[A-Z0-9]{5,15}$/;
 
-export const createOrderSchema = Joi.object({
-  shippingAddress: Joi.object({
-    street: Joi.string().pattern(addressPattern).required().messages({
-      'string.pattern.base': 'Street must be 5-100 alphanumeric characters',
-      'any.required': 'Street is required'
-    }),
-    city: Joi.string().pattern(/^[a-zA-Z\s-]{2,50}$/).required().messages({
-      'string.pattern.base': 'City must be 2-50 letters and hyphens',
-      'any.required': 'City is required'
-    }),
-    state: Joi.string().pattern(/^[a-zA-Z\s-]{2,50}$/).required().messages({
-      'string.pattern.base': 'State must be 2-50 letters and hyphens',
-      'any.required': 'State is required'
-    }),
-    postalCode: Joi.string().pattern(/^[0-9]{5,10}$/).required().messages({
-      'string.pattern.base': 'Postal code must be 5-10 digits',
-      'any.required': 'Postal code is required'
-    }),
-    country: Joi.string().pattern(/^[a-zA-Z\s-]{2,50}$/).required().messages({
-      'string.pattern.base': 'Country must be 2-50 letters and hyphens',
-      'any.required': 'Country is required'
-    })
-  }).required().messages({
-    'object.base': 'Shipping address must be an object',
-    'any.required': 'Shipping address is required'
+export const createOrderSchema = z.object({
+  shippingAddress: z.object({
+    street: z.string().regex(addressPattern, {
+      message: 'Street must be 5-100 alphanumeric characters'
+    }).nonempty('Street is required'),
+    city: z.string().regex(/^[a-zA-Z\s-]{2,50}$/, {
+      message: 'City must be 2-50 letters and hyphens'
+    }).nonempty('City is required'),
+    state: z.string().regex(/^[a-zA-Z\s-]{2,50}$/, {
+      message: 'State must be 2-50 letters and hyphens'
+    }).nonempty('State is required'),
+    postalCode: z.string().regex(/^[0-9]{5,10}$/, {
+      message: 'Postal code must be 5-10 digits'
+    }).nonempty('Postal code is required'),
+    country: z.string().regex(/^[a-zA-Z\s-]{2,50}$/, {
+      message: 'Country must be 2-50 letters and hyphens'
+    }).nonempty('Country is required')
+  }).required({
+    message: 'Shipping address is required'
   }),
-  paymentMethod: Joi.string().valid('card', 'cash', 'bank').default('card').messages({
-    'any.only': 'Payment method must be card, cash, or bank'
-  }),
-  couponCode: Joi.string().pattern(couponPattern).optional().allow(null).messages({
-    'string.pattern.base': 'Coupon code must be 5-15 uppercase alphanumeric characters'
+  paymentMethod: z.enum(['card', 'cash', 'bank']).default('card'),
+  couponCode: z.string().regex(couponPattern, {
+    message: 'Coupon code must be 5-15 uppercase alphanumeric characters'
+  }).optional().nullable()
+});
+
+export const confirmOrderSchema = z.object({
+  orderId: z.string().length(24).regex(/^[0-9a-fA-F]+$/, {
+    message: 'Order ID must be a valid hexadecimal'
+  }).nonempty('Order ID is required'),
+  paymentIntentId: z.string().optional().superRefine((val, ctx) => {
+    const paymentMethod = ctx.parent.paymentMethod;
+    if (paymentMethod === 'card' && !val) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: 'Payment intent ID is required for card payments'
+      });
+    }
+  })
+}).refine(data => data.paymentMethod !== 'card' || data.paymentIntentId, {
+  message: 'Payment intent ID is required for card payments',
+  path: ['paymentIntentId']
+});
+
+export const orderIdParamsSchema = z.object({
+  id: z.string().length(24).regex(/^[0-9a-fA-F]+$/, {
+    message: 'Order ID must be a valid hexadecimal'
+  }).nonempty('Order ID is required')
+});
+
+export const orderStatusSchema = z.object({
+  status: z.enum(['pending', 'confirmed', 'shipped', 'delivered', 'cancelled'], {
+    required_error: "Status is required",
+    invalid_type_error: "Status must be one of: pending, confirmed, shipped, delivered, cancelled"
   })
 });
 
-export const confirmOrderSchema = Joi.object({
-  orderId: Joi.string().hex().length(24).required().messages({
-    'string.hex': 'Order ID must be a valid hexadecimal',
-    'string.length': 'Order ID must be 24 characters long',
-    'any.required': 'Order ID is required'
-  }),
-  paymentIntentId: Joi.when('paymentMethod', {
-    is: 'card',
-    then: Joi.string().required().messages({
-      'any.required': 'Payment intent ID is required for card payments'
-    }),
-    otherwise: Joi.string().optional()
-  })
-});
-
-export const orderIdParamsSchema = Joi.object({
-  id: Joi.string().hex().length(24).required().messages({
-    'string.hex': 'Order ID must be a valid hexadecimal',
-    'string.length': 'Order ID must be 24 characters long',
-    'any.required': 'Order ID is required'
-  })
-});
-
-export const orderStatusSchema = Joi.object({
-  status: Joi.string().valid('pending', 'confirmed', 'shipped', 'delivered', 'cancelled').required().messages({
-    'any.only': 'Status must be one of: pending, confirmed, shipped, delivered, cancelled',
-    'any.required': 'Status is required'
-  })
-});
-
-export const ordersQuerySchema = Joi.object({
-  page: Joi.number().integer().min(1).default(1).messages({
-    'number.base': 'Page must be a number',
-    'number.integer': 'Page must be an integer',
-    'number.min': 'Page must be at least 1'
-  }),
-  limit: Joi.number().integer().min(1).max(100).default(10).messages({
-    'number.base': 'Limit must be a number',
-    'number.integer': 'Limit must be an integer',
-    'number.min': 'Limit must be at least 1',
-    'number.max': 'Limit cannot exceed 100'
-  }),
-  status: Joi.string().valid('pending', 'confirmed', 'shipped', 'delivered', 'cancelled').messages({
-    'any.only': 'Status must be one of: pending, confirmed, shipped, delivered, cancelled'
-  })
+export const ordersQuerySchema = z.object({
+  page: z.number().int().min(1).default(1),
+  limit: z.number().int().min(1).max(100).default(10),
+  status: z.enum(['pending', 'confirmed', 'shipped', 'delivered', 'cancelled']).optional()
 });

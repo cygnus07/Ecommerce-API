@@ -1,59 +1,38 @@
-import Joi from 'joi';
+import { z } from 'zod';
 
 // Validation for adding item to cart
-export const addToCartSchema = Joi.object({
-  productId: Joi.string()
-    .hex()
-    .length(24)
-    .required()
-    .messages({
-      'string.hex': 'Product ID must be a valid hexadecimal',
-      'string.length': 'Product ID must be 24 characters long',
-      'any.required': 'Product ID is required'
-    }),
-  quantity: Joi.number()
-    .integer()
-    .min(1)
+export const addToCartSchema = z.object({
+  productId: z.string()
+    .length(24, { message: 'Product ID must be 24 characters long' })
+    .regex(/^[0-9a-fA-F]+$/, { message: 'Product ID must be a valid hexadecimal' })
+    .nonempty({ message: 'Product ID is required' }),
+  quantity: z.number()
+    .int({ message: 'Quantity must be an integer' })
+    .min(1, { message: 'Quantity must be at least 1' })
     .default(1)
-    .messages({
-      'number.base': 'Quantity must be a number',
-      'number.integer': 'Quantity must be an integer',
-      'number.min': 'Quantity must be at least 1'
-    })
 });
 
 // Validation for updating cart item quantity
-export const updateCartItemSchema = Joi.object({
-  productId: Joi.string()
-    .hex()
-    .length(24)
-    .required()
-    .messages({
-      'string.hex': 'Product ID must be a valid hexadecimal',
-      'string.length': 'Product ID must be 24 characters long',
-      'any.required': 'Product ID is required'
-    }),
-  quantity: Joi.number()
-    .integer()
-    .min(1)
-    .required()
-    .messages({
-      'number.base': 'Quantity must be a number',
-      'number.integer': 'Quantity must be an integer',
-      'number.min': 'Quantity must be at least 1',
-      'any.required': 'Quantity is required'
-    })
+export const updateCartItemSchema = z.object({
+  productId: z.string()
+    .length(24, { message: 'Product ID must be 24 characters long' })
+    .regex(/^[0-9a-fA-F]+$/, { message: 'Product ID must be a valid hexadecimal' })
+    .nonempty({ message: 'Product ID is required' }),
+  quantity: z.number()
+    .int({ message: 'Quantity must be an integer' })
+    .min(1, { message: 'Quantity must be at least 1' })
+    .nonnegative({ message: 'Quantity must be a positive number' })
 });
 
 // Optional: Schema for cart item ID param validation
-export const cartItemParamsSchema = Joi.object({
-  productId: Joi.string()
-    .hex()
-    .length(24)
-    .required()
-    .messages({
-      'string.hex': 'Product ID must be a valid hexadecimal',
-      'string.length': 'Product ID must be 24 characters long',
-      'any.required': 'Product ID is required'
-    })
+export const cartItemParamsSchema = z.object({
+  productId: z.string()
+    .length(24, { message: 'Product ID must be 24 characters long' })
+    .regex(/^[0-9a-fA-F]+$/, { message: 'Product ID must be a valid hexadecimal' })
+    .nonempty({ message: 'Product ID is required' })
 });
+
+// If you need to infer TypeScript types from the schemas:
+export type AddToCartInput = z.infer<typeof addToCartSchema>;
+export type UpdateCartItemInput = z.infer<typeof updateCartItemSchema>;
+export type CartItemParams = z.infer<typeof cartItemParamsSchema>;

@@ -1,6 +1,6 @@
 import { Request, Response } from 'express';
-import { Cart } from '../models/cart.model.js';
-import { Product } from '../models/product.model.js';
+import  Cart  from '../models/Cart.model.js';
+import  Product  from '../models/Product.model.js';
 import { sendSuccess, sendError, ErrorCodes } from '../utils/apiResponse.js';
 import { logger } from '../utils/logger.js';
 
@@ -57,10 +57,10 @@ export const cartController = {
       }
       
       // Check if product is active
-      if (!product.isActive) {
-        sendError(res, 'Product is not available', 400, ErrorCodes.BAD_REQUEST);
-        return;
-      }
+      // if (!product.isActive) {
+      //   sendError(res, 'Product is not available', 400, ErrorCodes.BAD_REQUEST);
+      //   return;
+      // }
       
       // Check stock
       if (product.stockQuantity < quantity) {
