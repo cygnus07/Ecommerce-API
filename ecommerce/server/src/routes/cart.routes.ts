@@ -24,6 +24,10 @@ router.put('/', validate(updateCartItemSchema), cartController.updateCartItem);
 // DELETE /api/cart/:productId - Remove item from cart
 router.delete('/:productId', validate(cartItemParamsSchema, 'params'), cartController.removeFromCart);
 
+// delete /api/cart/:productId - reduce item quantity in cart by 1
+router.delete('/:productId/reduce', validate(cartItemParamsSchema, 'params'), cartController.reduceCartItem);
+
+
 // DELETE /api/cart - Clear cart
 router.delete('/', cartController.clearCart);
 

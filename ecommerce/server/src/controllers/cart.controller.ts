@@ -248,6 +248,67 @@ export const cartController = {
       sendError(res, 'Failed to remove item from cart', 500);
     }
   },
+
+
+  // Add this to your cartController
+    reduceCartItem: async (req: Request, res: Response): Promise<void> => {
+      try {
+        const userId = req.user._id;
+        const { productId } = req.params;
+        
+        // Find cart
+        const cart = await Cart.findOne({ user: userId });
+        if (!cart) {
+          sendError(res, 'Cart not found', 404, ErrorCodes.NOT_FOUND);
+          return;
+        }
+        
+        // Find item index
+        const itemIndex = cart.items.findIndex(item => 
+          item.product.toString() === productId
+        );
+        
+        if (itemIndex === -1) {
+          sendError(res, 'Item not found in cart', 404, ErrorCodes.NOT_FOUND);
+          return;
+        }
+        
+        // Reduce quantity
+        cart.items[itemIndex].quantity -= 1;
+        
+        // Remove if quantity reaches 0
+        if (cart.items[itemIndex].quantity <= 0) {
+          cart.items.splice(itemIndex, 1);
+        }
+        
+        // Save cart
+        await cart.save();
+        
+        // Populate and calculate totals (same as other methods)
+        await cart.populate({
+          path: 'items.product',
+          select: 'name price images stockQuantity discount'
+        });
+        
+        const subtotal = cart.items.reduce((sum, item) => {
+          const price = item.product.price;
+          const discountPrice = price - (price * (item.product.discount / 100));
+          return sum + (discountPrice * item.quantity);
+        }, 0);
+        
+        sendSuccess(res, { 
+          cart,
+          summary: {
+            subtotal,
+            itemCount: cart.items.length,
+            totalItems: cart.items.reduce((sum, item) => sum + item.quantity, 0)
+          }
+        }, 'Item quantity reduced successfully');
+      } catch (error) {
+        logger.error(`Reduce cart item error: ${error}`);
+        sendError(res, 'Failed to reduce item quantity', 500);
+      }
+    },
   
   // Clear cart
   clearCart: async (req: Request, res: Response): Promise<void> => {
