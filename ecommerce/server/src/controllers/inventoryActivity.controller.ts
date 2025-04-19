@@ -8,7 +8,7 @@ export const inventoryActivityController = {
   /**
    * Log inventory activity
    */
-  logActivity: async (req: Request, res: Response) => {
+  logActivity: async (req: Request, res: Response):  Promise<void> => {
     try {
       const { productId, activityType, quantity, note } = req.body;
       const userId = req.user.id;
@@ -16,7 +16,8 @@ export const inventoryActivityController = {
       // Validate product exists
       const product = await Product.findById(productId);
       if (!product) {
-        return sendError(res, 'Product not found', 404, ErrorCodes.NOT_FOUND);
+         sendError(res, 'Product not found', 404, ErrorCodes.NOT_FOUND);
+         return
       }
       
       // Create activity record
@@ -54,17 +55,17 @@ export const inventoryActivityController = {
       activity.newStock = newStock;
       await activity.save();
       
-      return sendSuccess(res, activity, 'Inventory activity logged successfully', 201);
+      sendSuccess(res, activity, 'Inventory activity logged successfully', 201);
     } catch (err) {
       logger.error(`Error logging inventory activity: ${err.message}`);
-      return sendError(res, 'Failed to log inventory activity');
+       sendError(res, 'Failed to log inventory activity');
     }
   },
   
   /**
    * Get inventory activities for a product
    */
-  getProductActivities: async (req: Request, res: Response) => {
+  getProductActivities: async (req: Request, res: Response): Promise<void> => {
     try {
       const { productId } = req.params;
       const { limit = 20, page = 1 } = req.query;
@@ -79,7 +80,7 @@ export const inventoryActivityController = {
       
       const total = await InventoryActivity.countDocuments({ product: productId });
       
-      return sendSuccess(res, {
+      sendSuccess(res, {
         activities,
         pagination: {
           total,
@@ -90,14 +91,14 @@ export const inventoryActivityController = {
       }, 'Inventory activities retrieved successfully');
     } catch (err) {
       logger.error(`Error getting inventory activities: ${err.message}`);
-      return sendError(res, 'Failed to get inventory activities');
+      sendError(res, 'Failed to get inventory activities');
     }
   },
   
   /**
    * Get all inventory activities (admin)
    */
-  getAllActivities: async (req: Request, res: Response) => {
+  getAllActivities: async (req: Request, res: Response): Promise<void> => {
     try {
       const { 
         limit = 20, 
@@ -133,7 +134,7 @@ export const inventoryActivityController = {
       
       const total = await InventoryActivity.countDocuments(filter);
       
-      return sendSuccess(res, {
+      sendSuccess(res, {
         activities,
         pagination: {
           total,
@@ -144,14 +145,14 @@ export const inventoryActivityController = {
       }, 'Inventory activities retrieved successfully');
     } catch (err) {
       logger.error(`Error getting all inventory activities: ${err.message}`);
-      return sendError(res, 'Failed to get inventory activities');
+      sendError(res, 'Failed to get inventory activities');
     }
   },
   
   /**
    * Get inventory activity summary
    */
-  getActivitySummary: async (req: Request, res: Response) => {
+  getActivitySummary: async (req: Request, res: Response): Promise<void> => {
     try {
       const { startDate, endDate } = req.query;
       
@@ -208,10 +209,10 @@ export const inventoryActivityController = {
       
       const summary = await InventoryActivity.aggregate(aggregation);
       
-      return sendSuccess(res, summary, 'Inventory activity summary retrieved successfully');
+      sendSuccess(res, summary, 'Inventory activity summary retrieved successfully');
     } catch (err) {
       logger.error(`Error getting inventory activity summary: ${err.message}`);
-      return sendError(res, 'Failed to get inventory activity summary');
+      sendError(res, 'Failed to get inventory activity summary');
     }
   }
 };

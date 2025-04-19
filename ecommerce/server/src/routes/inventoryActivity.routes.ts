@@ -1,5 +1,5 @@
 import express from 'express';
-import { inventoryActivityController } from "../controllers/inventoryActivity.controller.js";
+import { inventoryActivityController } from '../controllers/inventoryActivity.controller.js'
 import { authenticate, authorize } from '../middlewares/auth.middleware.js';
 import { validate } from '../middlewares/validation.middleware.js';
 import { inventoryActivityValidators } from '../validators/inventoryActivity.validator.js';
