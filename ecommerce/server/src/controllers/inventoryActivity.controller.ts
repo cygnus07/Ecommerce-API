@@ -1,82 +1,85 @@
 import { Request, Response } from 'express';
-import  InventoryActivity  from '../models/InventoryActivity.model.js';
-import  Product  from '../models/Product.model.js';
+import InventoryActivity from '../models/InventoryActivity.model.js';
+import Product from '../models/Product.model.js';
 import { sendSuccess, sendError, ErrorCodes } from '../utils/apiResponse.js';
 import { logger } from '../utils/logger.js';
+import { InventoryActivityType } from '../models/InventoryActivity.model.js';
 
 export const inventoryActivityController = {
   /**
    * Log inventory activity
    */
-  logActivity: async (req: Request, res: Response):  Promise<void> => {
+  logActivity: async (req: Request, res: Response): Promise<void> => {
     try {
-      const { productId, activityType, quantity, note } = req.body;
+      const { product, type, quantity, variant, reference, note } = req.body;
       const userId = req.user.id;
       
       // Validate product exists
-      const product = await Product.findById(productId);
-      if (!product) {
-         sendError(res, 'Product not found', 404, ErrorCodes.NOT_FOUND);
-         return
+      const productDoc = await Product.findById(product);
+      if (!productDoc) {
+        sendError(res, 'Product not found', 404, ErrorCodes.NOT_FOUND);
+        return;
       }
       
-      // Create activity record
-      const activity = await InventoryActivity.create({
-        product: productId,
-        performedBy: userId,
-        activityType,
+      // Create activity record using the static method
+      const activity = await InventoryActivity.logActivity({
+        product,
+        type,
         quantity,
+        variant,
+        reference,
         note,
-        previousStock: product.stockQuantity
+        performedBy: userId
       });
       
-      // Update product stock
-      let newStock = product.stockQuantity;
+      // Update product stock based on activity type
+      let newStock = productDoc.stockQuantity;
       
-      switch (activityType) {
-        case 'add':
+      switch (type) {
+        case InventoryActivityType.STOCK_ADDITION:
+        case InventoryActivityType.PURCHASE:
+        case InventoryActivityType.RETURN:
           newStock += quantity;
           break;
-        case 'remove':
+          
+        case InventoryActivityType.STOCK_REMOVAL:
+        case InventoryActivityType.SALE:
+        case InventoryActivityType.DAMAGED:
+        case InventoryActivityType.TRANSFER:
           newStock -= quantity;
-          if (newStock < 0) {
-            newStock = 0;
-          }
+          if (newStock < 0) newStock = 0;
           break;
-        case 'adjust':
+          
+        case InventoryActivityType.ADJUSTMENT:
           newStock = quantity;
           break;
       }
       
       // Update product stock
-      await Product.findByIdAndUpdate(productId, { stockQuantity: newStock });
-      
-      // Update activity with new stock
-      activity.newStock = newStock;
-      await activity.save();
+      await Product.findByIdAndUpdate(product, { stockQuantity: newStock });
       
       sendSuccess(res, activity, 'Inventory activity logged successfully', 201);
     } catch (err) {
       logger.error(`Error logging inventory activity: ${err.message}`);
-       sendError(res, 'Failed to log inventory activity');
+      sendError(res, 'Failed to log inventory activity');
     }
   },
-  
+
   /**
    * Get inventory activities for a product
    */
   getProductActivities: async (req: Request, res: Response): Promise<void> => {
     try {
       const { productId } = req.params;
-      const { limit = 20, page = 1 } = req.query;
+      const { limit = 20, page = 1 } = req.query as { limit?: number; page?: number };
       
-      const skip = (Number(page) - 1) * Number(limit);
+      const skip = (page - 1) * limit;
       
       const activities = await InventoryActivity.find({ product: productId })
         .populate('performedBy', 'name email')
         .sort({ createdAt: -1 })
         .skip(skip)
-        .limit(Number(limit));
+        .limit(limit);
       
       const total = await InventoryActivity.countDocuments({ product: productId });
       
@@ -84,9 +87,9 @@ export const inventoryActivityController = {
         activities,
         pagination: {
           total,
-          page: Number(page),
-          limit: Number(limit),
-          totalPages: Math.ceil(total / Number(limit))
+          page,
+          limit,
+          totalPages: Math.ceil(total / limit)
         }
       }, 'Inventory activities retrieved successfully');
     } catch (err) {
@@ -95,6 +98,7 @@ export const inventoryActivityController = {
     }
   },
   
+
   /**
    * Get all inventory activities (admin)
    */
@@ -104,23 +108,33 @@ export const inventoryActivityController = {
         limit = 20, 
         page = 1, 
         productId, 
-        activityType,
+        type,
         startDate,
         endDate,
-        userId
+        userId,
+        referenceType,
+        referenceId
       } = req.query;
       
       const filter: any = {};
       
       if (productId) filter.product = productId;
-      if (activityType) filter.activityType = activityType;
+      if (type) filter.type = type;
       if (userId) filter.performedBy = userId;
+      
+      // Reference filtering
+      if (referenceType && referenceId) {
+        filter.reference = {
+          type: referenceType,
+          id: referenceId
+        };
+      }
       
       // Date filtering
       if (startDate || endDate) {
         filter.createdAt = {};
-        if (startDate) filter.createdAt.$gte = new Date(String(startDate));
-        if (endDate) filter.createdAt.$lte = new Date(String(endDate));
+        if (startDate) filter.createdAt.$gte = new Date(startDate as string);
+        if (endDate) filter.createdAt.$lte = new Date(endDate as string);
       }
       
       const skip = (Number(page) - 1) * Number(limit);
@@ -128,6 +142,7 @@ export const inventoryActivityController = {
       const activities = await InventoryActivity.find(filter)
         .populate('performedBy', 'name email')
         .populate('product', 'name price images')
+        .populate('variant', 'name sku')
         .sort({ createdAt: -1 })
         .skip(skip)
         .limit(Number(limit));
@@ -148,27 +163,36 @@ export const inventoryActivityController = {
       sendError(res, 'Failed to get inventory activities');
     }
   },
-  
+
   /**
    * Get inventory activity summary
    */
   getActivitySummary: async (req: Request, res: Response): Promise<void> => {
     try {
-      const { startDate, endDate } = req.query;
+      const { startDate, endDate, productId, type } = req.query;
       
-      const dateFilter: any = {};
-      if (startDate) dateFilter.$gte = new Date(String(startDate));
-      if (endDate) dateFilter.$lte = new Date(String(endDate));
+      const match: any = {};
+      
+      // Date filtering
+      if (startDate || endDate) {
+        match.createdAt = {};
+        if (startDate) match.createdAt.$gte = new Date(startDate as string);
+        if (endDate) match.createdAt.$lte = new Date(endDate as string);
+      }
+      
+      // Product filter
+      if (productId) match.product = new mongoose.Types.ObjectId(productId as string);
+      
+      // Activity type filter
+      if (type) match.type = type;
       
       const aggregation = [
-        {
-          $match: dateFilter.length > 0 ? { createdAt: dateFilter } : {}
-        },
+        { $match: match },
         {
           $group: {
             _id: {
               productId: '$product',
-              activityType: '$activityType'
+              activityType: '$type'
             },
             totalQuantity: { $sum: '$quantity' },
             count: { $sum: 1 }
@@ -194,9 +218,7 @@ export const inventoryActivityController = {
             as: 'productDetails'
           }
         },
-        {
-          $unwind: '$productDetails'
-        },
+        { $unwind: '$productDetails' },
         {
           $project: {
             _id: 1,
@@ -208,7 +230,6 @@ export const inventoryActivityController = {
       ];
       
       const summary = await InventoryActivity.aggregate(aggregation);
-      
       sendSuccess(res, summary, 'Inventory activity summary retrieved successfully');
     } catch (err) {
       logger.error(`Error getting inventory activity summary: ${err.message}`);

@@ -70,7 +70,7 @@ const inventoryActivitySchema = new Schema<InventoryActivityDocument, InventoryA
   },
   variant: { 
     type: Schema.Types.ObjectId,
-    ref: 'ProductVariant' 
+    required: false
   },
   type: { 
     type: String, 
