@@ -28,13 +28,13 @@ router.use(authorize('admin'));
 router.post('/', validate(createCategorySchema), categoryController.createCategory);
 router.put(
   '/:id',
-  validate(categoryIdParamsSchema),
+  validate(categoryIdParamsSchema, 'params'),
   validate(updateCategorySchema),
   categoryController.updateCategory
 );
 router.delete(
   '/:id',
-  validate(categoryIdParamsSchema),
+  validate(categoryIdParamsSchema, 'params'),
   categoryController.deleteCategory
 );
 

@@ -167,6 +167,7 @@ export const categoryController = {
   updateCategory: async (req: Request, res: Response): Promise<void> => {
     try {
       const categoryId = req.params.id;
+      console.log(categoryId)
       const { name, description, parentId } = req.body;
       
       // Check if category with same name exists (excluding this one)
