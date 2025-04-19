@@ -51,9 +51,9 @@ router.get(
 router.put(
   '/:id',
   auth.admin, // Using combined middleware
-  upload.array('images', 5),
-  validate(productIdParamsSchema),
-  validate(productUpdateSchema),
+  // upload.array('images', 5),
+  validate(productIdParamsSchema, 'params'),
+  validate(productUpdateSchema, 'body'),
   productController.updateProduct
 );
 

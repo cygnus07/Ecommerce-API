@@ -185,9 +185,10 @@ export const productController = {
       const productId = req.params.id;
       const {
         name, description, price, categoryId, sku,
-        stockQuantity, isActive, tags, specifications,
+        stockQuantity, tags, specifications,
         discount, removeImages
       } = req.body;
+      console.log(req.body)
       
       // Find product
       const product = await Product.findById(productId);
@@ -231,7 +232,7 @@ export const productController = {
           category: categoryId || product.category,
           sku: sku || product.sku,
           stockQuantity: stockQuantity !== undefined ? stockQuantity : product.stockQuantity,
-          isActive: isActive !== undefined ? isActive : product.isActive,
+          // isActive: isActive !== undefined ? isActive : product.isActive,
           tags: tags ? tags.split(',').map((tag: string) => tag.trim()) : product.tags,
           images: images,
           specifications: specifications ? JSON.parse(specifications) : product.specifications,
