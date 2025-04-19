@@ -29,7 +29,7 @@ export const env = {
   // JWT
   JWT_SECRET: getEnvVariable('JWT_SECRET'),
   JWT_REFRESH_SECRET: getEnvVariable('JWT_REFRESH_SECRET'),
-  JWT_EXPIRATION: getEnvVariable('JWT_EXPIRATION', '15m'),
+  JWT_EXPIRATION: getEnvVariable('JWT_EXPIRATION', '6d'),
   JWT_REFRESH_EXPIRATION: getEnvVariable('JWT_REFRESH_EXPIRATION', '7d'),
   
   // AWS S3

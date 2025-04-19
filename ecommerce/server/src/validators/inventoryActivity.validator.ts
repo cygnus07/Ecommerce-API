@@ -49,7 +49,7 @@ export const inventoryActivityValidators = {
   },
 
   getActivitySummary: {
-    query: z.object({
+    query: z.object({ 
       startDate: z.string().datetime().optional(),
       endDate: z.string().datetime().optional(),
       type: InventoryActivityType.optional(), // Add activity type filter

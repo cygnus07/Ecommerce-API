@@ -4,6 +4,7 @@ import Product from '../models/Product.model.js';
 import { sendSuccess, sendError, ErrorCodes } from '../utils/apiResponse.js';
 import { logger } from '../utils/logger.js';
 import { InventoryActivityType } from '../models/InventoryActivity.model.js';
+import mongoose from 'mongoose';
 
 export const inventoryActivityController = {
   /**
@@ -20,50 +21,72 @@ export const inventoryActivityController = {
         sendError(res, 'Product not found', 404, ErrorCodes.NOT_FOUND);
         return;
       }
+
+      // Validate variant exists if provided
+      if (variant && !productDoc.variants.some(v => v._id.equals(variant))) {
+        sendError(res, 'Variant not found', 404, ErrorCodes.NOT_FOUND);
+        return;
+      }
       
-      // Create activity record using the static method
-      const activity = await InventoryActivity.logActivity({
+      // Get current stock (variant or product level)
+      const currentStock = variant 
+        ? productDoc.variants.id(variant).inventory
+        : productDoc.stockQuantity;
+
+      // Create activity record
+      const activity = await InventoryActivity.create({
         product,
         type,
         quantity,
         variant,
         reference,
         note,
-        performedBy: userId
+        performedBy: userId,
+        previousQuantity: currentStock,
+        newQuantity: type === 'adjustment' ? quantity : currentStock + quantity
       });
       
-      // Update product stock based on activity type
-      let newStock = productDoc.stockQuantity;
-      
+      // Update stock based on activity type
+      let updatedStock;
       switch (type) {
-        case InventoryActivityType.STOCK_ADDITION:
-        case InventoryActivityType.PURCHASE:
-        case InventoryActivityType.RETURN:
-          newStock += quantity;
+        case 'stock_addition':
+        case 'purchase':
+        case 'return':
+          updatedStock = currentStock + quantity;
           break;
           
-        case InventoryActivityType.STOCK_REMOVAL:
-        case InventoryActivityType.SALE:
-        case InventoryActivityType.DAMAGED:
-        case InventoryActivityType.TRANSFER:
-          newStock -= quantity;
-          if (newStock < 0) newStock = 0;
+        case 'stock_removal':
+        case 'sale':
+        case 'damaged':
+        case 'transfer':
+          updatedStock = Math.max(0, currentStock - quantity);
           break;
           
-        case InventoryActivityType.ADJUSTMENT:
-          newStock = quantity;
+        case 'adjustment':
+          updatedStock = quantity;
           break;
+          
+        default:
+          throw new Error('Invalid activity type');
       }
+
+      // Update inventory
+      const update = variant
+        ? { $set: { 'variants.$[elem].inventory': updatedStock } }
+        : { $set: { stockQuantity: updatedStock } };
       
-      // Update product stock
-      await Product.findByIdAndUpdate(product, { stockQuantity: newStock });
+      await Product.updateOne(
+        { _id: product, ...(variant && { 'variants._id': variant }) },
+        update,
+        { arrayFilters: variant ? [{ 'elem._id': variant }] : undefined }
+      );
       
       sendSuccess(res, activity, 'Inventory activity logged successfully', 201);
     } catch (err) {
       logger.error(`Error logging inventory activity: ${err.message}`);
       sendError(res, 'Failed to log inventory activity');
     }
-  },
+},
 
   /**
    * Get inventory activities for a product
