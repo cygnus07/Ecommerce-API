@@ -61,7 +61,7 @@ router.put(
 router.delete(
   '/:id',
   auth.admin, // Using combined middleware
-  validate(productIdParamsSchema),
+  validate(productIdParamsSchema, 'params'),
   productController.deleteProduct
 );
 
