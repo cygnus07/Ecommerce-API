@@ -43,7 +43,7 @@ router.get(
 // Get a single product (Public)
 router.get(
   '/:id',
-  validate(productIdParamsSchema),
+  validate(productIdParamsSchema, 'params'),
   productController.getProductById
 );
 

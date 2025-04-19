@@ -153,6 +153,8 @@ export const productController = {
   getProductById: async (req: Request, res: Response): Promise<void> => {
     try {
       const productId = req.params.id;
+      // console.log(productId)
+      // console.log(await Product.findById(productId))
       
       const product = await Product.findById(productId)
         .populate('category', 'name')
@@ -164,10 +166,11 @@ export const productController = {
       }
       
       // Check if product is active for non-admin users
-      if (!product.isActive && (!req.user || req.user.role !== 'admin')) {
-        sendError(res, 'Product not found', 404, ErrorCodes.NOT_FOUND);
-        return;
-      }
+      // if (!product.isActive && (!req.user || req.user.role !== 'admin')) {
+      //   sendError(res, 'Product not found', 404, ErrorCodes.NOT_FOUND);
+      //   return;
+      // }
+      // isActive field not included in product model as of now
       
       sendSuccess(res, { product }, 'Product retrieved successfully');
     } catch (error) {
