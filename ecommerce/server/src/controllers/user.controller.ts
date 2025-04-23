@@ -1,10 +1,13 @@
 import { Request, Response } from 'express';
 import bcrypt from 'bcryptjs';
-import jwt from 'jsonwebtoken';
-import  User  from '../models/User.model.js';
+import crypto from 'crypto';
+import nodemailer from 'nodemailer';
+import User from '../models/User.model.js';
 import { sendSuccess, sendError, ErrorCodes } from '../utils/apiResponse.js';
 import { env } from '../config/environment.js';
 import { logger } from '../utils/logger.js';
+import jwt from 'jsonwebtoken';
+import { withRetry } from '../utils/helper.js';
 
 import { 
   RegisterInput, 
@@ -15,52 +18,230 @@ import {
   AdminUpdateUserInput
 } from '../validators/user.validator.js';
 
+
+// Helper function to generate OTP
+const generateOTP = (): string => {
+  return Math.floor(100000 + Math.random() * 900000).toString();
+};
+
+// Helper function to send email
+const sendEmail = async (to: string, subject: string, text: string): Promise<void> => {
+  try {
+    const transporter = nodemailer.createTransport({
+      service: 'gmail', // Keep this for simplicity
+      auth: {
+        user: process.env.EMAIL_USER,
+        pass: process.env.EMAIL_PASS,
+      },
+      logger: true, // Keep debug logs for now
+    });
+
+    await transporter.sendMail({
+      from: `"Shop AI" <${process.env.EMAIL_USER}>`, // Formalized format
+      to,
+      subject,
+      text,
+      html: `<p>${text.replace(/\n/g, '<br>')}</p>`, // Keep HTML fallback
+    });
+
+    logger.info(`Email sent to ${to}`);
+  } catch (error) {
+    logger.error(`Email failed to ${to}: ${error instanceof Error ? error.stack : error}`);
+    throw error; // Re-throw for route handler
+  }
+};
+
+
 export const userController = {
   // Register new user
   register: async (req: Request, res: Response): Promise<void> => {
     try {
       const { firstName, lastName, email, password, role } = req.validatedData as RegisterInput;
       
-      // Check if user already exists
-      const existingUser = await User.findOne({ email });
-      if (existingUser) {
-        sendError(res, 'Email already in use', 409, ErrorCodes.CONFLICT);
+      // 1. Check existing user (optimized query)
+      if (await User.exists({ email })) {
+        sendError(res, 'Email already in use', ErrorCodes.CONFLICT);
         return;
       }
       
-      // Create new user
-      const hashedPassword = await bcrypt.hash(password, 10);
-      const user = new User({
-        firstName,
-        lastName,
-        email,
-        password: hashedPassword,
-        role: role || 'customer' // Default role
-      });
+      // 2. Create user with transaction for atomicity
+      const session = await User.startSession();
+      session.startTransaction();
       
-      await user.save();
+      try {
+        // 3. Generate and hash OTP
+        const otp = generateOTP();
+        const emailVerificationToken = crypto
+          .createHash('sha256')
+          .update(otp)
+          .digest('hex');
+
+        // 4. Create user
+        const user = new User({
+          firstName,
+          lastName,
+          email,
+          password: await bcrypt.hash(password, 12), // Increased salt rounds
+          emailVerified: false,
+          emailVerificationToken,
+          passwordResetExpires: new Date(Date.now() + 10 * 60 * 1000),
+          role: role || 'customer'
+        });
+
+        await user.save({ session });
+
+        // 5. Send email with retry logic
+        const verificationText = `
+          Hi ${firstName},
+          
+          Your verification code is: ${otp}
+          Valid for 10 minutes.
+          
+          If you didn't request this, please ignore this email.
+          
+          Thanks,
+          ShopAI
+        `;
+
+        await withRetry(
+          () => sendEmail(email, 'Email Verification', verificationText),
+          3, // 3 attempts
+          1000 // 1 second delay between retries
+        );
+
+        // 6. Generate tokens
+        const [token, refreshToken] = await Promise.all([
+          jwt.sign(
+            { userId: user._id.toString() },
+            env.JWT_SECRET,
+            { expiresIn: env.JWT_EXPIRATION } as jwt.SignOptions
+          ),
+          jwt.sign(
+            { userId: user._id.toString() },
+            env.JWT_REFRESH_SECRET as string,
+            { expiresIn: env.JWT_REFRESH_EXPIRATION } as jwt.SignOptions
+          )
+        ]);
+
+        // 7. Commit transaction
+        await session.commitTransaction();
+        
+        // 8. Secure response
+        const userObject = user.toObject();
+        delete userObject.password;
+        delete userObject.emailVerificationToken;
+        
+        sendSuccess(res, { 
+          user: userObject, 
+          token, 
+          refreshToken 
+        }, 'Registration successful. Please verify your email.', 201);
+        
+      } catch (error) {
+        // Rollback on any error
+        await session.abortTransaction();
+        throw error;
+      } finally {
+        session.endSession();
+      }
       
-      // Generate token
-      const token = jwt.sign(
-        { userId: user._id.toString() }, // Ensure _id is a string (Mongoose ObjectId → string)
-        env.JWT_SECRET as string,        // Explicitly assert as string if needed
-        { expiresIn: env.JWT_EXPIRATION } as jwt.SignOptions // Type assertion for options
+    } catch (error) {
+      logger.error(`Registration error: ${error instanceof Error ? error.stack : error}`);
+      sendError(res, 'Registration failed', 500);
+    }
+  },
+
+  // Verify email
+  verifyEmail: async (req: Request, res: Response): Promise<void> => {
+    const session = await User.startSession();
+    try {
+      const { email, otp } = req.body;
+
+      // 1. Input validation
+      if (!email || !otp) {
+        sendError(res, 'Email and OTP are required', ErrorCodes.BAD_REQUEST);
+      }
+
+      // 2. Hash the OTP (timing-safe comparison)
+      const hashedOTP = crypto
+        .createHash('sha256')
+        .update(otp)
+        .digest('hex');
+
+      // 3. Start transaction
+      session.startTransaction();
+
+      // 4. Find and lock user document
+      const user = await User.findOneAndUpdate(
+        {
+          email,
+          emailVerificationToken: hashedOTP,
+          passwordResetExpires: { $gt: new Date() }, // Check expiration
+          emailVerified: false // Extra guard
+        },
+        { 
+          $set: { 
+            emailVerified: true,
+            emailVerificationToken: null,
+            passwordResetExpires: null 
+          } 
+        },
+        { 
+          new: true,
+          session,
+          useFindAndModify: false 
+        }
       );
 
-      const refreshToken = jwt.sign(
-        { userId: user._id.toString() },
-        env.JWT_REFRESH_SECRET as string,
-        { expiresIn: env.JWT_REFRESH_EXPIRATION } as jwt.SignOptions
+      if (!user) {
+        await session.abortTransaction();
+        sendError(
+          res, 
+          'Invalid, expired, or already verified code',
+          ErrorCodes.BAD_REQUEST
+        );
+      }
+
+      // 5. Commit transaction
+      await session.commitTransaction();
+
+      // 6. Generate new tokens if needed
+      const [token, refreshToken] = await Promise.all([
+        jwt.sign(
+          { userId: user._id.toString() },
+          env.JWT_SECRET,
+          { expiresIn: env.JWT_EXPIRATION } as jwt.SignOptions
+        ),
+        jwt.sign(
+          { userId: user._id.toString() },
+          env.JWT_REFRESH_SECRET,
+          { expiresIn: env.JWT_REFRESH_EXPIRATION } as jwt.SignOptions
+        )
+      ]);
+
+      // 7. Send response
+      sendSuccess(res, { 
+        message: 'Email verified successfully',
+        token,
+        refreshToken
+      });
+
+    } catch (error) {
+      await session.abortTransaction();
+      logger.error(`Email verification error: ${error instanceof Error ? error.stack : error} `);
+      
+      // Differentiate between validation and server errors
+      const isValidationError = error instanceof Error && error.name === 'ValidationError';
+      sendError(
+        res,
+        isValidationError ? 'Invalid verification data' : 'Email verification failed',
+        isValidationError ? ErrorCodes.BAD_REQUEST  : ErrorCodes.INTERNAL_SERVER_ERROR,
+        isValidationError ? 'VALIDATION_ERROR' : 'EMAIL_VERIFICATION_FAILED'
       );
       
-      // Remove password from response
-      const userObject = user.toObject();
-      delete userObject.password;
       
-      sendSuccess(res, { user: userObject, token, refreshToken }, 'User registered successfully', 201);
-    } catch (error) {
-      logger.error(`Registration error: ${error}`);
-      sendError(res, 'Registration failed', 500);
+    } finally {
+      session.endSession();
     }
   },
   
@@ -72,7 +253,7 @@ export const userController = {
       // Find user
       const user = await User.findOne({ email });
       if (!user) {
-        sendError(res, 'Invalid credentials', 401, ErrorCodes.UNAUTHORIZED);
+        sendError(res, 'Invalid credentials', ErrorCodes.UNAUTHORIZED);
         return;
       }
       

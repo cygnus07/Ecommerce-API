@@ -46,8 +46,9 @@ export const env = {
   EMAIL_HOST: getEnvVariable('EMAIL_HOST', ''),
   EMAIL_PORT: parseInt(getEnvVariable('EMAIL_PORT', '587'), 10),
   EMAIL_USER: getEnvVariable('EMAIL_USER', ''),
-  EMAIL_PASSWORD: getEnvVariable('EMAIL_PASSWORD', ''),
+  EMAIL_PASS: getEnvVariable('EMAIL_PASSWORD', ''),
   EMAIL_FROM: getEnvVariable('EMAIL_FROM', ''),
+  EMAIL_SECURE: getEnvVariable('EMAIL_SECURE', 'false') === 'true',
   
   // Paths
   ROOT_DIR: rootDir,
