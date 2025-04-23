@@ -76,6 +76,22 @@ export const adminUpdateUserSchema = updateProfileBaseSchema.extend({
   addresses: z.array(addressSchema).optional()
 });
 
+// Email verification schema 
+export const verifyEmailSchema = z.object({
+  email: emailSchema,
+  otp: z.string()
+    .length(6, 'OTP must be exactly 6 digits')
+    .regex(/^\d+$/, 'OTP must contain only numbers')
+});
+
+// Resend verification email schema
+export const resendVerificationSchema = z.object({
+    email: z.string().email('Invalid email format'),
+});
+// Type export
+export type VerifyEmailInput = z.infer<typeof verifyEmailSchema>;
+export type ResendVerificationInput = z.infer<typeof resendVerificationSchema>;
+
 // TypeScript types
 export type RegisterInput = z.infer<typeof registerSchema>;
 export type LoginInput = z.infer<typeof loginSchema>;

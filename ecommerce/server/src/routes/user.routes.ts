@@ -8,7 +8,9 @@ import {
   refreshTokenSchema,
   updateProfileSchema,
   changePasswordSchema,
-  adminUpdateUserSchema
+  adminUpdateUserSchema,
+  verifyEmailSchema,
+  resendVerificationSchema
 } from '../validators/user.validator.js';
 
 const router = Router();
@@ -17,6 +19,11 @@ const router = Router();
 router.post('/register', validate(registerSchema), userController.register);
 router.post('/login', validate(loginSchema), userController.login);
 router.post('/refresh-token', validate(refreshTokenSchema), userController.refreshToken);
+
+// Email verification and password reset routes
+router.post('/verify-email', validate(verifyEmailSchema), userController.verifyEmail);
+router.post('/resend-verification', validate(resendVerificationSchema), userController.resendVerificationEmail);
+
 
 // Authenticated routes
 router.use(authenticate);

@@ -156,6 +156,7 @@ export const userController = {
     const session = await User.startSession();
     try {
       const { email, otp } = req.body;
+      console.log('Email:', email, 'OTP:', otp);
 
       // 1. Input validation
       if (!email || !otp) {
@@ -244,6 +245,44 @@ export const userController = {
       session.endSession();
     }
   },
+
+
+  // Resend verification email (controller-only version)
+  // Resend verification email
+  resendVerificationEmail: async (req: Request, res: Response): Promise<void> => {
+    try {
+      const { email } = req.body;
+
+      const user = await User.findOne({ email, emailVerified: false });
+      if (!user) {
+        return sendError(res, 'User not found or already verified', ErrorCodes.BAD_REQUEST);
+      }
+
+      // Generate new OTP
+      const otp = generateOTP();
+      
+      // Hash the OTP before storing
+      const emailVerificationToken = crypto
+        .createHash('sha256')
+        .update(otp)
+        .digest('hex');
+
+      // Update user with new verification token
+      user.emailVerificationToken = emailVerificationToken;
+      user.passwordResetExpires = new Date(Date.now() + 10 * 60 * 1000);
+      await user.save();
+
+      // Send verification email with OTP
+      const verificationText = `Your new email verification code is: ${otp}. Valid for 10 minutes.`;
+      await sendEmail(email, 'Email Verification', verificationText);
+
+      sendSuccess(res, { message: 'Verification email sent successfully' });
+    } catch (error) {
+      logger.error(`Resend verification error: ${error} `);
+      sendError(res, 'Failed to resend verification email', ErrorCodes.INTERNAL_SERVER_ERROR);
+    }
+  },
+
   
   // Login user
   login: async (req: Request, res: Response): Promise<void> => {
