@@ -247,7 +247,7 @@ export const userController = {
   },
 
 
-  // Resend verification email (controller-only version)
+  
   // Resend verification email
   resendVerificationEmail: async (req: Request, res: Response): Promise<void> => {
     try {
@@ -333,7 +333,7 @@ export const userController = {
       const { refreshToken } = req.validatedData as RefreshTokenInput;
       
       if (!refreshToken) {
-        sendError(res, 'Refresh token is required', 400, ErrorCodes.BAD_REQUEST);
+        sendError(res, 'Refresh token is required', ErrorCodes.BAD_REQUEST);
         return;
       }
       
@@ -350,7 +350,7 @@ export const userController = {
       sendSuccess(res, { token }, 'Token refreshed successfully');
     } catch (error) {
       logger.error(`Token refresh error: ${error}`);
-      sendError(res, 'Invalid refresh token', 401, ErrorCodes.UNAUTHORIZED);
+      sendError(res, 'Invalid refresh token', ErrorCodes.UNAUTHORIZED);
     }
   },
   
@@ -360,7 +360,7 @@ export const userController = {
       const user = req.user;
       
       if (!user) {
-        sendError(res, 'User not found', 404, ErrorCodes.NOT_FOUND);
+        sendError(res, 'User not found', ErrorCodes.NOT_FOUND);
         return;
       }
       
@@ -385,7 +385,7 @@ export const userController = {
       if (email && email !== req.user.email) {
         const existingUser = await User.findOne({ email });
         if (existingUser) {
-          sendError(res, 'Email already in use', 409, ErrorCodes.CONFLICT);
+          sendError(res, 'Email already in use', ErrorCodes.CONFLICT);
           return;
         }
       }
@@ -398,7 +398,7 @@ export const userController = {
       );
       
       if (!updatedUser) {
-        sendError(res, 'User not found', 404, ErrorCodes.NOT_FOUND);
+        sendError(res, 'User not found', ErrorCodes.NOT_FOUND);
         return;
       }
       
@@ -422,14 +422,14 @@ export const userController = {
       // Find user
       const user = await User.findById(userId);
       if (!user) {
-        sendError(res, 'User not found', 404, ErrorCodes.NOT_FOUND);
+        sendError(res, 'User not found', ErrorCodes.NOT_FOUND);
         return;
       }
       
       // Check current password
       const isPasswordValid = await bcrypt.compare(currentPassword, user.password);
       if (!isPasswordValid) {
-        sendError(res, 'Current password is incorrect', 400, ErrorCodes.BAD_REQUEST);
+        sendError(res, 'Current password is incorrect', ErrorCodes.BAD_REQUEST);
         return;
       }
       
@@ -481,7 +481,7 @@ export const userController = {
       const user = await User.findById(userId).select('-password');
       
       if (!user) {
-        sendError(res, 'User not found', 404, ErrorCodes.NOT_FOUND);
+        sendError(res, 'User not found', ErrorCodes.NOT_FOUND);
         return;
       }
       
@@ -502,7 +502,7 @@ export const userController = {
       if (email) {
         const existingUser = await User.findOne({ email, _id: { $ne: userId } });
         if (existingUser) {
-          sendError(res, 'Email already in use', 409, ErrorCodes.CONFLICT);
+          sendError(res, 'Email already in use', ErrorCodes.CONFLICT);
           return;
         }
       }
@@ -514,7 +514,7 @@ export const userController = {
       ).select('-password');
       
       if (!updatedUser) {
-        sendError(res, 'User not found', 404, ErrorCodes.NOT_FOUND);
+        sendError(res, 'User not found', ErrorCodes.NOT_FOUND);
         return;
       }
       
@@ -533,7 +533,7 @@ export const userController = {
       const user = await User.findByIdAndDelete(userId);
       
       if (!user) {
-        sendError(res, 'User not found', 404, ErrorCodes.NOT_FOUND);
+        sendError(res, 'User not found', ErrorCodes.NOT_FOUND);
         return;
       }
       
