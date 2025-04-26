@@ -46,9 +46,12 @@ export const env = {
   EMAIL_HOST: getEnvVariable('EMAIL_HOST', ''),
   EMAIL_PORT: parseInt(getEnvVariable('EMAIL_PORT', '587'), 10),
   EMAIL_USER: getEnvVariable('EMAIL_USER', ''),
-  EMAIL_PASS: getEnvVariable('EMAIL_PASSWORD', ''),
+  EMAIL_PASS: getEnvVariable('EMAIL_PASS', ''),
   EMAIL_FROM: getEnvVariable('EMAIL_FROM', ''),
   EMAIL_SECURE: getEnvVariable('EMAIL_SECURE', 'false') === 'true',
+
+  FRONTEND_URL: getEnvVariable('FRONTEND_URL', 'http://www.greykiwi.com'),
+  APP_NAME: getEnvVariable('APP_NAME', 'Shop AI'),
   
   // Paths
   ROOT_DIR: rootDir,

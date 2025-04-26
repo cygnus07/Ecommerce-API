@@ -1,13 +1,14 @@
 import { Request, Response } from 'express';
 import bcrypt from 'bcryptjs';
 import crypto from 'crypto';
-import nodemailer from 'nodemailer';
+import { emailService } from '../services/email.service.js';
 import User from '../models/User.model.js';
 import { sendSuccess, sendError, ErrorCodes } from '../utils/apiResponse.js';
 import { env } from '../config/environment.js';
 import { logger } from '../utils/logger.js';
 import jwt from 'jsonwebtoken';
 import { withRetry } from '../utils/helper.js';
+// import nodemailer from 'nodemailer'
 
 import { 
   RegisterInput, 
@@ -24,32 +25,31 @@ const generateOTP = (): string => {
   return Math.floor(100000 + Math.random() * 900000).toString();
 };
 
-// Helper function to send email
-const sendEmail = async (to: string, subject: string, text: string): Promise<void> => {
-  try {
-    const transporter = nodemailer.createTransport({
-      service: 'gmail', // Keep this for simplicity
-      auth: {
-        user: process.env.EMAIL_USER,
-        pass: process.env.EMAIL_PASS,
-      },
-      logger: true, // Keep debug logs for now
-    });
+// const sendEmail = async (to: string, subject: string, text: string): Promise<void> => {
+//    try {
+//       const transporter = nodemailer.createTransport({
+//         service: 'gmail', 
+//         auth: {
+//           user: env.EMAIL_USER,
+//           pass: env.EMAIL_PASS,
+//         },
+//         logger: true, // Keep debug logs for now
+//       });
 
-    await transporter.sendMail({
-      from: `"Shop AI" <${process.env.EMAIL_USER}>`, // Formalized format
-      to,
-      subject,
-      text,
-      html: `<p>${text.replace(/\n/g, '<br>')}</p>`, // Keep HTML fallback
-    });
-
-    logger.info(`Email sent to ${to}`);
-  } catch (error) {
-    logger.error(`Email failed to ${to}: ${error instanceof Error ? error.stack : error}`);
-    throw error; // Re-throw for route handler
-  }
-};
+//      await transporter.sendMail({
+//        from: `"Shop AI" <${process.env.EMAIL_USER}>`, // Formalized format
+//        to,
+//        subject,
+//        text,
+//        html: `<p>${text.replace(/\n/g, '<br>')}</p>`, // Keep HTML fallback
+//      });
+ 
+//      logger.info(`Email sent to ${to}`);
+//    } catch (error) {
+//      logger.error(`Email failed to ${to}: ${error instanceof Error ? error.stack : error}`);
+//      throw error; // Re-throw for route handler
+//    }
+//  };
 
 
 export const userController = {
@@ -81,7 +81,7 @@ export const userController = {
           firstName,
           lastName,
           email,
-          password: await bcrypt.hash(password, 12), // Increased salt rounds
+          password: await bcrypt.hash(password, 12), 
           emailVerified: false,
           emailVerificationToken,
           passwordResetExpires: new Date(Date.now() + 10 * 60 * 1000),
@@ -104,7 +104,7 @@ export const userController = {
         `;
 
         await withRetry(
-          () => sendEmail(email, 'Email Verification', verificationText),
+          () => emailService.sendEmail(email, 'Email Verification', verificationText),
           3, // 3 attempts
           1000 // 1 second delay between retries
         );
@@ -161,6 +161,7 @@ export const userController = {
       // 1. Input validation
       if (!email || !otp) {
         sendError(res, 'Email and OTP are required', ErrorCodes.BAD_REQUEST);
+        return
       }
 
       // 2. Hash the OTP (timing-safe comparison)
@@ -201,6 +202,7 @@ export const userController = {
           'Invalid, expired, or already verified code',
           ErrorCodes.BAD_REQUEST
         );
+        return
       }
 
       // 5. Commit transaction
@@ -219,6 +221,10 @@ export const userController = {
           { expiresIn: env.JWT_REFRESH_EXPIRATION } as jwt.SignOptions
         )
       ]);
+      console.log(user.firstName, 'User name');
+      // console.log(user)
+      emailService.sendWelcomeEmail(user.email, user.firstName || 'there')
+        .catch(e => logger.error(`Welcome email failed silently: ${e}`));
 
       // 7. Send response
       sendSuccess(res, { 
@@ -237,7 +243,7 @@ export const userController = {
         res,
         isValidationError ? 'Invalid verification data' : 'Email verification failed',
         isValidationError ? ErrorCodes.BAD_REQUEST  : ErrorCodes.INTERNAL_SERVER_ERROR,
-        isValidationError ? 'VALIDATION_ERROR' : 'EMAIL_VERIFICATION_FAILED'
+        isValidationError ?  'VALIDATION_ERROR' : 'EMAIL_VERIFICATION_FAILED'
       );
       
       

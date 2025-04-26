@@ -5,66 +5,73 @@ import { logger } from '../utils/logger.js';
 
 // Create a transporter for sending emails
 const transporter = nodemailer.createTransport({
-  host: env.EMAIL_HOST,
-  port: env.EMAIL_PORT,
-  secure: env.EMAIL_PORT === 465,
+  service: 'gmail', // Keep this for simplicity
   auth: {
     user: env.EMAIL_USER,
-    pass: env.EMAIL_PASSWORD
-  }
+    pass: env.EMAIL_PASS,
+  },
+  // logger: true, // Keep debug logs for now
 });
 
 export const emailService = {
-  /**
-   * Send an email
-   */
-  sendEmail: async (
-    to: string | string[],
-    subject: string,
-    html: string,
-    from = env.EMAIL_FROM
-  ) => {
-    try {
-      const mailOptions = {
-        from,
-        to,
-        subject,
-        html
-      };
-      
-      const info = await transporter.sendMail(mailOptions);
-      logger.info(`Email sent: ${info.messageId}`);
-      return info;
-    } catch (err) {
-      logger.error(`Error sending email: ${err.message}`);
-      throw err;
-    }
-  },
+
+ // Helper function to send email
+ sendEmail: async (to: string, subject: string, text: string): Promise<void> => {
+   try {
+ 
+     await transporter.sendMail({
+       from: `"Shop AI" <${process.env.EMAIL_USER}>`, // Formalized format
+       to,
+       subject,
+       text,
+       html: `<p>${text.replace(/\n/g, '<br>')}</p>`, // Keep HTML fallback
+     });
+ 
+     logger.info(`Email sent to ${to}`);
+   } catch (error) {
+     logger.error(`Email failed to ${to}: ${error instanceof Error ? error.stack : error}`);
+     throw error; // Re-throw for route handler
+   }
+ },
   
   /**
    * Send welcome email to new user
-   */
-  sendWelcomeEmail: async (to: string, name: string) => {
-    const subject = 'Welcome to Our E-commerce Platform';
-    const html = `
-      <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
-        <h2>Welcome to Our Store!</h2>
-        <p>Hello ${name},</p>
-        <p>Thank you for joining our e-commerce platform. We're excited to have you as a customer!</p>
-        <p>With your new account, you can:</p>
-        <ul>
-          <li>Browse our latest products</li>
-          <li>Save items to your wishlist</li>
-          <li>Track your orders</li>
-          <li>Leave reviews on products you've purchased</li>
-        </ul>
-        <p>If you have any questions, please don't hesitate to contact our support team.</p>
-        <p>Happy shopping!</p>
-        <p>Best regards,<br>The Team</p>
-      </div>
-    `;
-    
-    return emailService.sendEmail(to, subject, html);
+  */
+   sendWelcomeEmail:  async (to: string, name: string): Promise<void> => {
+    try {
+      const subject = 'Welcome to Our E-commerce Platform';
+      const html = `
+        <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; border: 1px solid #e0e0e0; border-radius: 8px;">
+          <h2 style="color: #2c3e50;">Welcome to Our Store, ${name}!</h2>
+          <p>Hello ${name},</p>
+          <p>Thank you for verifying your email and joining our e-commerce platform. We're excited to have you as a customer!</p>
+          
+          <div style="background-color: #f8f9fa; padding: 15px; border-radius: 5px; margin: 15px 0;">
+            <p style="font-weight: bold;">With your verified account, you can now:</p>
+            <ul style="margin-top: 10px;">
+              <li>Browse our latest products</li>
+              <li>Save items to your wishlist</li>
+              <li>Complete purchases</li>
+              <li>Track your orders</li>
+              <li>Leave reviews on products you've purchased</li>
+            </ul>
+          </div>
+  
+          <p>Start shopping now: <a href="${env.FRONTEND_URL}" style="color: #3498db;">Visit our store</a></p>
+          
+          <p>If you have any questions, please don't hesitate to contact our support team at <a href="mailto:support@example.com">support@example.com</a>.</p>
+          
+          <p style="margin-top: 30px;">Happy shopping!</p>
+          <p>Best regards,<br>The ${env.APP_NAME} Team</p>
+        </div>
+      `;
+      
+      await emailService.sendEmail(to, subject, html);
+      logger.info(`Welcome email sent to ${to}`);
+    } catch (error) {
+      logger.error(`Failed to send welcome email to ${to}: ${error instanceof Error ? error.stack : error}`);
+      // Don't throw error here as we don't want to block the verification flow
+    }
   },
   
   /**
