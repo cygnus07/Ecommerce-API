@@ -1,16 +1,52 @@
-// src/validators/review.validator.ts
-import { body, param } from 'express-validator';
+import { Request, Response, NextFunction } from 'express';
+import { AnyZodObject } from 'zod';
+import { sendError, ErrorCodes } from '../utils/apiResponse.js';
 
-export const reviewValidators = {
-  createReview: [
-    body('productId').isMongoId().withMessage('Valid product ID is required'),
-    body('rating').isInt({ min: 1, max: 5 }).withMessage('Rating must be between 1 and 5'),
-    body('comment').isString().notEmpty().withMessage('Review comment is required')
-  ],
-  
-  updateReview: [
-    param('reviewId').isMongoId().withMessage('Valid review ID is required'),
-    body('rating').optional().isInt({ min: 1, max: 5 }).withMessage('Rating must be between 1 and 5'),
-    body('comment').optional().isString().notEmpty().withMessage('Review comment cannot be empty')
-  ]
-};
+export const validateRequest = (schema: AnyZodObject) => 
+  async (req: Request, res: Response, next: NextFunction) => {
+    try {
+      await schema.parseAsync({
+        body: req.body,
+        query: req.query,
+        params: req.params
+      });
+       next();
+    } catch (error: any) {
+      const errorMessage = error.errors?.map((e: any) => e.message).join(', ') || 'Validation failed';
+      sendError(res, errorMessage, ErrorCodes.BAD_REQUEST);
+    }
+  };
+
+// Helper functions for specific parts of the request
+export const validateBody = (schema: AnyZodObject) => 
+  async (req: Request, res: Response, next: NextFunction) => {
+    try {
+      req.body = await schema.parseAsync(req.body);
+      next();
+    } catch (error: any) {
+      const errorMessage = error.errors?.map((e: any) => e.message).join(', ') || 'Validation failed';
+      sendError(res, errorMessage, ErrorCodes.BAD_REQUEST);
+    }
+  };
+
+export const validateParams = (schema: AnyZodObject) => 
+  async (req: Request, res: Response, next: NextFunction) => {
+    try {
+      req.params = await schema.parseAsync(req.params);
+      next();
+    } catch (error: any) {
+      const errorMessage = error.errors?.map((e: any) => e.message).join(', ') || 'Validation failed';
+      sendError(res, errorMessage, ErrorCodes.BAD_REQUEST);
+    }
+  };
+
+export const validateQuery = (schema: AnyZodObject) => 
+  async (req: Request, res: Response, next: NextFunction) => {
+    try {
+      req.query = await schema.parseAsync(req.query);
+       next();
+    } catch (error: any) {
+      const errorMessage = error.errors?.map((e: any) => e.message).join(', ') || 'Validation failed';
+       sendError(res, errorMessage, ErrorCodes.BAD_REQUEST);
+    }
+  };

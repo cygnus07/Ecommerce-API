@@ -1,29 +1,51 @@
 import { Request, Response } from 'express';
 import { Types } from 'mongoose';
-import  Review  from '../models/Review.model.js';
-import  Product  from '../models/Product.model.js';
+import Review from '../models/Review.model.js';
+import Product from '../models/Product.model.js';
 import { sendSuccess, sendError, ErrorCodes } from '../utils/apiResponse.js';
 import { logger } from '../utils/logger.js';
+import { 
+  ReviewDocument,
+  CreateReviewInput,
+  UpdateReviewInput,
+  ReplyInput,
+  ModerateReviewInput
+} from '../types/review.types.js';
+
+// Define request types to enhance type safety
+interface AuthenticatedRequest extends Request {
+  user: {
+    id: string;
+    _id: string;
+    role?: string;
+  }
+}
 
 export const reviewController = {
   /**
    * Create a new review
    */
-  createReview: async (req: Request, res: Response) => {
+  createReview: async (req: AuthenticatedRequest, res: Response): Promise<void> => {
     try {
-      const { productId, rating, comment } = req.body;
+      const { productId, rating, comment, title, images } = req.body as CreateReviewInput;
       const userId = req.user.id;
 
       // Check if product exists
       const product = await Product.findById(productId);
       if (!product) {
-        return sendError(res, 'Product not found', ErrorCodes.NOT_FOUND);
+        sendError(res, 'Product not found', ErrorCodes.NOT_FOUND);
+        
       }
 
       // Check if user has already reviewed this product
-      const existingReview = await Review.findOne({ user: userId, product: productId });
+      const existingReview = await Review.findOne({ 
+        user: userId, 
+        product: productId,
+        deleted: { $ne: true }
+      });
+      
       if (existingReview) {
-        return sendError(
+        sendError(
           res, 
           'You have already reviewed this product', 
           ErrorCodes.CONFLICT
@@ -34,42 +56,50 @@ export const reviewController = {
         user: userId,
         product: productId,
         rating,
-        comment
+        comment,
+        title,
+        images,
+        status: 'pending',
+        isVerifiedPurchase: false // This could be updated based on order history
       });
 
       // Update product average rating
       await updateProductRating(productId);
 
-      return sendSuccess(res, newReview, 'Review created successfully', 201);
+       sendSuccess(res, newReview, 'Review created successfully', 201);
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : 'Unknown error occurred';
-      logger.error(`Error creating review: ${errorMessage }`);
-      return sendError(res, 'Failed to create review');
+      logger.error(`Error creating review: ${errorMessage}`);
+      sendError(res, 'Failed to create review');
     }
   },
-
+  
   /**
    * Get all reviews for a product
    */
-  getProductReviews: async (req: Request, res: Response) => {
+  getProductReviews: async (req: Request, res: Response): Promise<void> => {
     try {
       const { productId } = req.params;
-      const reviews = await Review.find({ product: productId })
+      
+      const reviews = await Review.find({ 
+        product: productId,
+        status: 'approved' // Only return approved reviews
+      })
         .populate('user', 'name email')
         .sort({ createdAt: -1 });
 
-      return sendSuccess(res, reviews, 'Reviews retrieved successfully');
+      sendSuccess(res, reviews, 'Reviews retrieved successfully');
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : 'Unknown error occurred';
       logger.error(`Error getting product reviews: ${errorMessage}`);
-      return sendError(res, 'Failed to get product reviews');
+      sendError(res, 'Failed to get product reviews');
     }
   },
 
   /**
    * Get all reviews by a user
    */
-  getUserReviews: async (req: Request, res: Response) => {
+  getUserReviews: async (req: AuthenticatedRequest, res: Response): Promise<void> => {
     try {
       const userId = req.params.userId || req.user._id;
       
@@ -77,27 +107,27 @@ export const reviewController = {
         .populate('product', 'name price images')
         .sort({ createdAt: -1 });
 
-       sendSuccess(res, reviews, 'User reviews retrieved successfully');
+      sendSuccess(res, reviews, 'User reviews retrieved successfully');
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : 'Unknown error occurred';
       logger.error(`Error getting user reviews: ${errorMessage}`);
-      return sendError(res, 'Failed to get user reviews');
+      sendError(res, 'Failed to get user reviews');
     }
   },
 
   /**
    * Update a review
    */
-  updateReview: async (req: Request, res: Response) => {
+  updateReview: async (req: AuthenticatedRequest, res: Response): Promise<void> => {
     try {
       const { reviewId } = req.params;
-      const { rating, comment } = req.body;
+      const { rating, comment, title, images } = req.body as UpdateReviewInput;
       const userId = req.user.id;
 
       const review = await Review.findById(reviewId);
       
       if (!review) {
-        return sendError(res, 'Review not found', ErrorCodes.NOT_FOUND);
+        sendError(res, 'Review not found', ErrorCodes.NOT_FOUND);
       }
 
       // Check if user is the owner of the review
@@ -105,8 +135,15 @@ export const reviewController = {
         return sendError(res, 'Unauthorized', ErrorCodes.FORBIDDEN);
       }
 
-      review.rating = rating || review.rating;
-      review.comment = comment || review.comment;
+      // Update fields if provided
+      if (rating !== undefined) review.rating = rating;
+      if (comment !== undefined) review.comment = comment;
+      if (title !== undefined) review.title = title;
+      if (images !== undefined) review.images = images;
+
+      // Reset status to pending after update for re-moderation
+      review.status = 'pending';
+      
       await review.save();
 
       // Update product average rating
@@ -116,14 +153,14 @@ export const reviewController = {
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : 'Unknown error occurred';
       logger.error(`Error updating review: ${errorMessage}`);
-      return sendError(res, 'Failed to update review');
+      sendError(res, 'Failed to update review');
     }
   },
 
   /**
-   * Delete a review
+   * Delete a review (soft delete)
    */
-  deleteReview: async (req: Request, res: Response) => {
+  deleteReview: async (req: AuthenticatedRequest, res: Response): Promise<void> => {
     try {
       const { reviewId } = req.params;
       const userId = req.user.id;
@@ -131,48 +168,210 @@ export const reviewController = {
       const review = await Review.findById(reviewId);
       
       if (!review) {
-        return sendError(res, 'Review not found', ErrorCodes.NOT_FOUND);
+        sendError(res, 'Review not found', ErrorCodes.NOT_FOUND);
       }
 
       // Check if user is the owner of the review or an admin
       if (review.user.toString() !== userId && req.user.role !== 'admin') {
-        return sendError(res, 'Unauthorized', ErrorCodes.FORBIDDEN);
+        sendError(res, 'Unauthorized', ErrorCodes.FORBIDDEN);
       }
 
       const productId = review.product;
-      await Review.deleteOne({ _id: reviewId });
+      
+      // Use soft delete instead of permanently removing
+      review.deleted = true;
+      review.deletedAt = new Date();
+      await review.save();
 
       // Update product average rating
       await updateProductRating(productId);
 
-      return sendSuccess(res, null, 'Review deleted successfully');
+      sendSuccess(res, null, 'Review deleted successfully');
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : 'Unknown error occurred';
       logger.error(`Error deleting review: ${errorMessage}`);
-      return sendError(res, 'Failed to delete review');
+      sendError(res, 'Failed to delete review');
+    }
+  },
+
+  /**
+   * Mark a review as helpful
+   */
+  markReviewHelpful: async (req: AuthenticatedRequest, res: Response): Promise<void> => {
+    try {
+      const { reviewId } = req.params;
+      const userId = req.user.id;
+
+      const review = await Review.findById(reviewId);
+      
+      if (!review) {
+        sendError(res, 'Review not found', ErrorCodes.NOT_FOUND);
+      }
+
+      // Check if user has already marked this review as helpful
+      const alreadyMarked = review.helpful.users.some(id => id.toString() === userId);
+      
+      if (alreadyMarked) {
+        // Remove user from helpful.users array
+        review.helpful.users = review.helpful.users.filter(id => id.toString() !== userId);
+        review.helpful.count = Math.max(0, review.helpful.count - 1);
+      } else {
+        // Add user to helpful.users array
+        review.helpful.users.push(new Types.ObjectId(userId));
+        review.helpful.count += 1;
+      }
+      
+      await review.save();
+
+      sendSuccess(
+        res, 
+        { helpful: review.helpful.count, marked: !alreadyMarked }, 
+        alreadyMarked ? 'Review unmarked as helpful' : 'Review marked as helpful'
+      );
+    } catch (err) {
+      const errorMessage = err instanceof Error ? err.message : 'Unknown error occurred';
+      logger.error(`Error marking review as helpful: ${errorMessage}`);
+      sendError(res, 'Failed to mark review as helpful');
+    }
+  },
+
+  /**
+   * Report a review
+   */
+  reportReview: async (req: AuthenticatedRequest, res: Response): Promise<void> => {
+    try {
+      const { reviewId } = req.params;
+      const userId = req.user.id;
+
+      const review = await Review.findById(reviewId)
+        .select('+reportThreshold');
+      
+      if (!review) {
+        sendError(res, 'Review not found', ErrorCodes.NOT_FOUND);
+      }
+
+      // Increment report count
+      review.reportCount = (review.reportCount || 0) + 1;
+      
+      // Automatically change status to 'pending' if report threshold is reached
+      if (review.reportCount >= review.reportThreshold) {
+        review.status = 'pending';
+      }
+      
+      await review.save();
+
+       sendSuccess(res, null, 'Review reported successfully');
+    } catch (err) {
+      const errorMessage = err instanceof Error ? err.message : 'Unknown error occurred';
+      logger.error(`Error reporting review: ${errorMessage}`);
+      sendError(res, 'Failed to report review');
+    }
+  },
+
+  /**
+   * Add a reply to a review (for shop owners or admins)
+   */
+  addReviewReply: async (req: AuthenticatedRequest, res: Response): Promise<void> => {
+    try {
+      const { reviewId } = req.params;
+      const { text } = req.body as ReplyInput;
+      const userId = req.user.id;
+
+      const review = await Review.findById(reviewId);
+      
+      if (!review) {
+         sendError(res, 'Review not found', ErrorCodes.NOT_FOUND);
+      }
+
+      // Only allow shop owners or admins to reply
+      // TODO: Add proper authorization check here
+      
+      review.reply = {
+        text,
+        user: new Types.ObjectId(userId),
+        createdAt: new Date()
+      };
+      
+      await review.save();
+
+       sendSuccess(res, review, 'Reply added successfully');
+    } catch (err) {
+      const errorMessage = err instanceof Error ? err.message : 'Unknown error occurred';
+      logger.error(`Error adding review reply: ${errorMessage}`);
+       sendError(res, 'Failed to add reply');
+    }
+  },
+
+  /**
+   * Moderate a review (admin only)
+   */
+  moderateReview: async (req: AuthenticatedRequest, res: Response): Promise<void> => {
+    try {
+      const { reviewId } = req.params;
+      const { status } = req.body as ModerateReviewInput;
+      const userId = req.user.id;
+
+      // Check if user is admin
+      if (req.user.role !== 'admin') {
+         sendError(res, 'Unauthorized. Admin access required', ErrorCodes.FORBIDDEN);
+      }
+
+      const review = await Review.findById(reviewId)
+        .select('+moderatedAt +moderator');
+      
+      if (!review) {
+         sendError(res, 'Review not found', ErrorCodes.NOT_FOUND);
+      }
+
+      review.status = status;
+      review.moderatedAt = new Date();
+      review.moderator = new Types.ObjectId(userId);
+      review.reportCount = 0; // Reset report count after moderation
+      
+      await review.save();
+
+      // Update product average rating if review status changed
+      await updateProductRating(review.product);
+
+       sendSuccess(res, review, 'Review moderated successfully');
+    } catch (err) {
+      const errorMessage = err instanceof Error ? err.message : 'Unknown error occurred';
+      logger.error(`Error moderating review: ${errorMessage}`);
+       sendError(res, 'Failed to moderate review');
     }
   }
 };
 
 /**
  * Helper function to update product average rating
+ * Only counts approved reviews
  */
-async function updateProductRating(productId: Types.ObjectId | string) {
-  const reviews = await Review.find({ product: productId });
-  
-  if (reviews.length === 0) {
-    await Product.findByIdAndUpdate(productId, { 
-      avgRating: 0,
-      reviewCount: 0 
+async function updateProductRating(productId: Types.ObjectId | string): Promise<void> {
+  try {
+    const reviews = await Review.find({ 
+      product: productId,
+      status: 'approved',
+      deleted: { $ne: true }
     });
-    return;
+    
+    if (reviews.length === 0) {
+      await Product.findByIdAndUpdate(productId, { 
+        avgRating: 0,
+        reviewCount: 0 
+      });
+      return;
+    }
+    
+    const totalRating = reviews.reduce((sum, review) => sum + review.rating, 0);
+    const avgRating = totalRating / reviews.length;
+    
+    await Product.findByIdAndUpdate(productId, { 
+      avgRating: Number(avgRating.toFixed(1)),
+      reviewCount: reviews.length 
+    });
+  } catch (err) {
+    const errorMessage = err instanceof Error ? err.message : 'Unknown error occurred';
+    logger.error(`Error updating product rating: ${errorMessage}`);
+    throw err;
   }
-  
-  const totalRating = reviews.reduce((sum, review) => sum + review.rating, 0);
-  const avgRating = totalRating / reviews.length;
-  
-  await Product.findByIdAndUpdate(productId, { 
-    avgRating: Number(avgRating.toFixed(1)),
-    reviewCount: reviews.length 
-  });
 }
