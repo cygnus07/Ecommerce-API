@@ -59,8 +59,18 @@ export const userController = {
       const { firstName, lastName, email, password, role } = req.validatedData as RegisterInput;
       
       // 1. Check existing user (optimized query)
-      if (await User.exists({ email })) {
-        sendError(res, 'Email already in use', ErrorCodes.CONFLICT);
+      const existingUser = await User.findOne({ email });
+      if (existingUser) {
+        if (existingUser.emailVerified) {
+          sendError(res, 'Email already in use', ErrorCodes.CONFLICT);
+        } else {
+          sendError(
+            res, 
+            'Email already registered but not verified. Check your email for verification code.',
+            ErrorCodes.CONFLICT,
+            'EMAIL_EXISTS_NOT_VERIFIED'
+          );
+        }
         return;
       }
       
@@ -84,58 +94,46 @@ export const userController = {
           password: await bcrypt.hash(password, 12), 
           emailVerified: false,
           emailVerificationToken,
-          passwordResetExpires: new Date(Date.now() + 10 * 60 * 1000),
+          passwordResetExpires: new Date(Date.now() + 10 * 60 * 1000), // 10 minutes
           role: role || 'customer'
         });
 
         await user.save({ session });
 
-        // 5. Send email with retry logic
-        const verificationText = `
-          Hi ${firstName},
-          
-          Your verification code is: ${otp}
-          Valid for 10 minutes.
-          
-          If you didn't request this, please ignore this email.
-          
-          Thanks,
-          ShopAI
+        // 5. Send verification email with HTML template
+        const verificationHtml = `
+          <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+            <h2>Email Verification</h2>
+            <p>Hi ${firstName},</p>
+            <p>Your verification code is: <strong>${otp}</strong></p>
+            <p>This code will expire in 10 minutes.</p>
+            <p>If you didn't request this, please ignore this email.</p>
+            <p>Thanks,<br>${env.APP_NAME}</p>
+          </div>
         `;
 
         await withRetry(
-          () => emailService.sendEmail(email, 'Email Verification', verificationText),
+          () => emailService.sendEmail(
+            email, 
+            `Verify Your ${env.APP_NAME} Account`, 
+            verificationHtml
+          ),
           3, // 3 attempts
           1000 // 1 second delay between retries
         );
 
-        // 6. Generate tokens
-        const [token, refreshToken] = await Promise.all([
-          jwt.sign(
-            { userId: user._id.toString() },
-            env.JWT_SECRET,
-            { expiresIn: env.JWT_EXPIRATION } as jwt.SignOptions
-          ),
-          jwt.sign(
-            { userId: user._id.toString() },
-            env.JWT_REFRESH_SECRET as string,
-            { expiresIn: env.JWT_REFRESH_EXPIRATION } as jwt.SignOptions
-          )
-        ]);
-
-        // 7. Commit transaction
+        // 6. Commit transaction
         await session.commitTransaction();
         
-        // 8. Secure response
+        // 7. Secure response (don't include tokens since email isn't verified)
         const userObject = user.toObject();
         delete userObject.password;
         delete userObject.emailVerificationToken;
         
         sendSuccess(res, { 
-          user: userObject, 
-          token, 
-          refreshToken 
-        }, 'Registration successful. Please verify your email.', 201);
+          user: userObject,
+          message: 'Registration successful. Please check your email for verification instructions.'
+        }, null, 201);
         
       } catch (error) {
         // Rollback on any error
@@ -147,7 +145,7 @@ export const userController = {
       
     } catch (error) {
       logger.error(`Registration error: ${error instanceof Error ? error.stack : error}`);
-      sendError(res, 'Registration failed', 500);
+      sendError(res, 'Registration failed', ErrorCodes.INTERNAL_SERVER_ERROR);
     }
   },
 
@@ -261,7 +259,8 @@ export const userController = {
 
       const user = await User.findOne({ email, emailVerified: false });
       if (!user) {
-        return sendError(res, 'User not found or already verified', ErrorCodes.BAD_REQUEST);
+        sendError(res, 'User not found or already verified', ErrorCodes.BAD_REQUEST);
+        return
       }
 
       // Generate new OTP
@@ -280,7 +279,7 @@ export const userController = {
 
       // Send verification email with OTP
       const verificationText = `Your new email verification code is: ${otp}. Valid for 10 minutes.`;
-      await sendEmail(email, 'Email Verification', verificationText);
+      await emailService.sendEmail(email, 'Email Verification', verificationText);
 
       sendSuccess(res, { message: 'Verification email sent successfully' });
     } catch (error) {
@@ -295,8 +294,8 @@ export const userController = {
     try {
       const { email, password } = req.validatedData as LoginInput;
       
-      // Find user
-      const user = await User.findOne({ email });
+      // Find user with email verification status
+      const user = await User.findOne({ email }).select('+password');
       if (!user) {
         sendError(res, 'Invalid credentials', ErrorCodes.UNAUTHORIZED);
         return;
@@ -305,11 +304,22 @@ export const userController = {
       // Check password
       const isPasswordValid = await bcrypt.compare(password, user.password);
       if (!isPasswordValid) {
-        sendError(res, 'Invalid credentials', 401, ErrorCodes.UNAUTHORIZED);
+        sendError(res, 'Invalid credentials', ErrorCodes.UNAUTHORIZED);
         return;
       }
       
-      // Generate token
+      // Check if email is verified
+      if (!user.emailVerified) {
+        sendError(
+          res, 
+          'Email not verified. Please check your email for verification instructions.',
+          ErrorCodes.FORBIDDEN,
+          'EMAIL_NOT_VERIFIED'
+        );
+        return;
+      }
+      
+      // Generate tokens
       const token = jwt.sign(
         { userId: user._id },
         env.JWT_SECRET,
@@ -322,14 +332,19 @@ export const userController = {
         { expiresIn: env.JWT_REFRESH_EXPIRATION } as jwt.SignOptions
       );
       
-      // Remove password from response
+      // Remove sensitive data from response
       const userObject = user.toObject();
       delete userObject.password;
+      delete userObject.emailVerificationToken;
       
-      sendSuccess(res, { user: userObject, token, refreshToken }, 'Login successful');
+      sendSuccess(res, { 
+        user: userObject, 
+        token, 
+        refreshToken 
+      }, 'Login successful');
     } catch (error) {
-      logger.error(`Login error: ${error}`);
-      sendError(res, 'Login failed', 500);
+      logger.error(`Login error: ${error instanceof Error ? error.stack : error}`);
+      sendError(res, 'Login failed', ErrorCodes.INTERNAL_SERVER_ERROR);
     }
   },
   
@@ -422,31 +437,57 @@ export const userController = {
   // Change password
   changePassword: async (req: Request, res: Response): Promise<void> => {
     try {
-      const { currentPassword, newPassword } = req.validatedData as ChangePasswordInput
+      const { currentPassword, newPassword } = req.validatedData as ChangePasswordInput;
       const userId = req.user._id;
       
-      // Find user
-      const user = await User.findById(userId);
+      // 1. Validate new password strength (add this to your ChangePasswordInput validation)
+      if (currentPassword === newPassword) {
+        sendError(res, 'New password must be different from current password', ErrorCodes.BAD_REQUEST);
+        return;
+      }
+      
+      // 2. Find user with password selected
+      const user = await User.findById(userId).select('+password +emailVerified');
       if (!user) {
         sendError(res, 'User not found', ErrorCodes.NOT_FOUND);
         return;
       }
       
-      // Check current password
-      const isPasswordValid = await bcrypt.compare(currentPassword, user.password);
-      if (!isPasswordValid) {
-        sendError(res, 'Current password is incorrect', ErrorCodes.BAD_REQUEST);
+      // 3. Additional check for email verification
+      if (!user.emailVerified) {
+        sendError(
+          res, 
+          'Please verify your email before changing password',
+          ErrorCodes.FORBIDDEN,
+          'EMAIL_NOT_VERIFIED'
+        );
         return;
       }
       
-      // Update password
-      user.password = await bcrypt.hash(newPassword, 10);
+      // 4. Check current password
+      const isPasswordValid = await bcrypt.compare(currentPassword, user.password);
+      if (!isPasswordValid) {
+        sendError(res, 'Current password is incorrect', ErrorCodes.UNAUTHORIZED);
+        return;
+      }
+      
+      // 5. Update password and invalidate existing tokens (optional)
+      user.password = await bcrypt.hash(newPassword, 12); // Increased salt rounds
+      user.passwordChangedAt = new Date(); // Track password change time
       await user.save();
+      
+      // 6. Optional: Invalidate existing JWT tokens by incrementing tokenVersion
+      // user.tokenVersion = (user.tokenVersion || 0) + 1;
+      // await user.save();
+      
+      // 7. Send password change notification email
+      emailService.sendPasswordChangeNotification(user.email, user.firstName || 'User')
+        .catch(e => logger.error('Password change notification failed:', e));
       
       sendSuccess(res, null, 'Password changed successfully');
     } catch (error) {
-      logger.error(`Change password error: ${error}`);
-      sendError(res, 'Failed to change password', 500);
+      logger.error(`Change password error: ${error instanceof Error ? error.stack : error}`);
+      sendError(res, 'Failed to change password', ErrorCodes.INTERNAL_SERVER_ERROR);
     }
   },
   

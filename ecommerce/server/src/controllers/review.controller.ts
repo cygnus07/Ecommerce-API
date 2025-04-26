@@ -1,7 +1,7 @@
 import { Request, Response } from 'express';
 import { Types } from 'mongoose';
-import { Review } from '../models/review.model.js';
-import { Product } from '../models/product.model.js';
+import  Review  from '../models/Review.model.js';
+import  Product  from '../models/Product.model.js';
 import { sendSuccess, sendError, ErrorCodes } from '../utils/apiResponse.js';
 import { logger } from '../utils/logger.js';
 
@@ -17,7 +17,7 @@ export const reviewController = {
       // Check if product exists
       const product = await Product.findById(productId);
       if (!product) {
-        return sendError(res, 'Product not found', 404, ErrorCodes.NOT_FOUND);
+        return sendError(res, 'Product not found', ErrorCodes.NOT_FOUND);
       }
 
       // Check if user has already reviewed this product
@@ -26,7 +26,6 @@ export const reviewController = {
         return sendError(
           res, 
           'You have already reviewed this product', 
-          409, 
           ErrorCodes.CONFLICT
         );
       }
@@ -43,7 +42,8 @@ export const reviewController = {
 
       return sendSuccess(res, newReview, 'Review created successfully', 201);
     } catch (err) {
-      logger.error(`Error creating review: ${err.message}`);
+      const errorMessage = err instanceof Error ? err.message : 'Unknown error occurred';
+      logger.error(`Error creating review: ${errorMessage }`);
       return sendError(res, 'Failed to create review');
     }
   },
@@ -60,7 +60,8 @@ export const reviewController = {
 
       return sendSuccess(res, reviews, 'Reviews retrieved successfully');
     } catch (err) {
-      logger.error(`Error getting product reviews: ${err.message}`);
+      const errorMessage = err instanceof Error ? err.message : 'Unknown error occurred';
+      logger.error(`Error getting product reviews: ${errorMessage}`);
       return sendError(res, 'Failed to get product reviews');
     }
   },
@@ -70,15 +71,16 @@ export const reviewController = {
    */
   getUserReviews: async (req: Request, res: Response) => {
     try {
-      const userId = req.params.userId || req.user.id;
+      const userId = req.params.userId || req.user._id;
       
       const reviews = await Review.find({ user: userId })
         .populate('product', 'name price images')
         .sort({ createdAt: -1 });
 
-      return sendSuccess(res, reviews, 'User reviews retrieved successfully');
+       sendSuccess(res, reviews, 'User reviews retrieved successfully');
     } catch (err) {
-      logger.error(`Error getting user reviews: ${err.message}`);
+      const errorMessage = err instanceof Error ? err.message : 'Unknown error occurred';
+      logger.error(`Error getting user reviews: ${errorMessage}`);
       return sendError(res, 'Failed to get user reviews');
     }
   },
@@ -95,12 +97,12 @@ export const reviewController = {
       const review = await Review.findById(reviewId);
       
       if (!review) {
-        return sendError(res, 'Review not found', 404, ErrorCodes.NOT_FOUND);
+        return sendError(res, 'Review not found', ErrorCodes.NOT_FOUND);
       }
 
       // Check if user is the owner of the review
       if (review.user.toString() !== userId) {
-        return sendError(res, 'Unauthorized', 403, ErrorCodes.FORBIDDEN);
+        return sendError(res, 'Unauthorized', ErrorCodes.FORBIDDEN);
       }
 
       review.rating = rating || review.rating;
@@ -112,7 +114,8 @@ export const reviewController = {
 
       return sendSuccess(res, review, 'Review updated successfully');
     } catch (err) {
-      logger.error(`Error updating review: ${err.message}`);
+      const errorMessage = err instanceof Error ? err.message : 'Unknown error occurred';
+      logger.error(`Error updating review: ${errorMessage}`);
       return sendError(res, 'Failed to update review');
     }
   },
@@ -128,12 +131,12 @@ export const reviewController = {
       const review = await Review.findById(reviewId);
       
       if (!review) {
-        return sendError(res, 'Review not found', 404, ErrorCodes.NOT_FOUND);
+        return sendError(res, 'Review not found', ErrorCodes.NOT_FOUND);
       }
 
       // Check if user is the owner of the review or an admin
       if (review.user.toString() !== userId && req.user.role !== 'admin') {
-        return sendError(res, 'Unauthorized', 403, ErrorCodes.FORBIDDEN);
+        return sendError(res, 'Unauthorized', ErrorCodes.FORBIDDEN);
       }
 
       const productId = review.product;
@@ -144,7 +147,8 @@ export const reviewController = {
 
       return sendSuccess(res, null, 'Review deleted successfully');
     } catch (err) {
-      logger.error(`Error deleting review: ${err.message}`);
+      const errorMessage = err instanceof Error ? err.message : 'Unknown error occurred';
+      logger.error(`Error deleting review: ${errorMessage}`);
       return sendError(res, 'Failed to delete review');
     }
   }

@@ -73,6 +73,21 @@ export const emailService = {
       // Don't throw error here as we don't want to block the verification flow
     }
   },
+
+  
+sendPasswordChangeNotification: async (to: string, name: string): Promise<void> => {
+  const subject = 'Your Password Was Changed';
+  const html = `
+    <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+      <h2>Password Change Notification</h2>
+      <p>Hello ${name},</p>
+      <p>This is to notify you that your account password was recently changed.</p>
+      <p>If you didn't make this change, please contact our support team immediately.</p>
+      <p>Thanks,<br>${env.APP_NAME} Team</p>
+    </div>
+  `;
+  await emailService.sendEmail(to, subject, html);
+},
   
   /**
    * Send order confirmation email
