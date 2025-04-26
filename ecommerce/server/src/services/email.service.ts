@@ -155,7 +155,7 @@ sendPasswordChangeNotification: async (to: string, name: string): Promise<void> 
    */
   sendPasswordResetEmail: async (to: string, name: string, resetToken: string) => {
     const subject = 'Password Reset Request';
-    const resetUrl = `${process.env.FRONTEND_URL}/reset-password?token=${resetToken}`;
+    const resetUrl = `${env.FRONTEND_URL}/reset-password?token=${resetToken}`;
     
     const html = `
       <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">

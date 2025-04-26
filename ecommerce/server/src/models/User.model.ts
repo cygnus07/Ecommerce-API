@@ -60,6 +60,8 @@ const userSchema = new Schema<UserDocument>({
   passwordResetExpires: { 
     type: Date 
   },
+  passwordChangedAt: Date
+,
   emailVerified: { 
     type: Boolean, 
     default: false 

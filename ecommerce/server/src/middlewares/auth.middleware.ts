@@ -4,6 +4,7 @@ import { env } from '../config/environment.js';
 import { ErrorCodes } from '../utils/apiResponse.js';
 import User from '../models/User.model.js';
 import { logger } from '../utils/logger.js';
+import BlacklistedToken from '../models/BlacklistedToken.model.js';
 
 // Extend Express Request type
 declare global {
@@ -30,6 +31,11 @@ const authenticate = async (req: Request, res: Response, next: NextFunction): Pr
     const token = authHeader.split(' ')[1];
     const decoded = jwt.verify(token, env.JWT_SECRET) as any;
     const user = await User.findById(decoded.userId);
+
+    const isBlacklisted = await BlacklistedToken.findOne({ token });
+    if (isBlacklisted) {
+      throw new Error('Token revoked');
+    }
     
     if (!user) {
       const error = new Error('User not found');

@@ -10,7 +10,9 @@ import {
   changePasswordSchema,
   adminUpdateUserSchema,
   verifyEmailSchema,
-  resendVerificationSchema
+  resendVerificationSchema,
+  ForgotPasswordInput,
+  ResetPasswordInput
 } from '../validators/user.validator.js';
 
 const router = Router();
@@ -19,6 +21,10 @@ const router = Router();
 router.post('/register', validate(registerSchema), userController.register);
 router.post('/login', validate(loginSchema), userController.login);
 router.post('/refresh-token', validate(refreshTokenSchema), userController.refreshToken);
+
+// Password recovery routes
+router.post('/forgot-password', validate(ForgotPasswordInput), userController.forgotPassword);
+router.post('/reset-password', validate(ResetPasswordInput), userController.resetPassword);
 
 // Email verification and password reset routes
 router.post('/verify-email', validate(verifyEmailSchema), userController.verifyEmail);
@@ -30,6 +36,7 @@ router.use(authenticate);
 router.get('/profile', userController.getProfile);
 router.put('/profile', validate(updateProfileSchema), userController.updateProfile);
 router.put('/change-password', validate(changePasswordSchema), userController.changePassword);
+router.post('/logout', userController.logout);
 
 // Admin routes
 router.use(authorize('admin'));

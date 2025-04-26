@@ -8,6 +8,7 @@ import { env } from '../config/environment.js';
 import { logger } from '../utils/logger.js';
 import jwt from 'jsonwebtoken';
 import { withRetry } from '../utils/helper.js';
+import BlacklistedToken from '../models/BlacklistedToken.model.js';
 // import nodemailer from 'nodemailer'
 
 import { 
@@ -374,6 +375,123 @@ export const userController = {
       sendError(res, 'Invalid refresh token', ErrorCodes.UNAUTHORIZED);
     }
   },
+
+  // Forgot password - request password reset
+  forgotPassword: async (req: Request, res: Response): Promise<void> => {
+    try {
+      const { email } = req.body;
+      
+      if (!email) {
+        sendError(res, 'Email is required', ErrorCodes.BAD_REQUEST);
+        return;
+      }
+      
+      // Find user
+      const user = await User.findOne({ email });
+      
+      // Don't reveal if user exists for security
+      if (!user) {
+        sendSuccess(res, null, 'If a user with that email exists, a password reset link has been sent');
+        return;
+      }
+      
+      // Generate reset token
+      const resetToken = crypto.randomBytes(32).toString('hex');
+      
+      // Hash token before saving to database
+      const hashedToken = crypto
+        .createHash('sha256')
+        .update(resetToken)
+        .digest('hex');
+      
+      // Save to user record
+      user.passwordResetToken = hashedToken;
+      user.passwordResetExpires = new Date(Date.now() + 60 * 60 * 1000); // 1 hour
+      await user.save();
+      
+      // Send reset email
+      try {
+        await emailService.sendPasswordResetEmail(
+          user.email,
+          user.firstName || 'User',
+          resetToken
+        );
+        
+        sendSuccess(
+          res, 
+          null, 
+          'Password reset link sent to your email. The link is valid for 1 hour.'
+        );
+      } catch (emailError) {
+        // If email fails, clean up the reset token
+        user.passwordResetToken = undefined;
+        user.passwordResetExpires = undefined;
+        await user.save();
+        
+        logger.error(`Error sending reset email: ${emailError}`);
+        throw new Error('Failed to send password reset email');
+      }
+      
+    } catch (error) {
+      logger.error(`Forgot password error: ${error instanceof Error ? error.stack : error}`);
+      sendError(res, 'Failed to process password reset request', ErrorCodes.INTERNAL_SERVER_ERROR);
+    }
+  },
+
+  // Reset password with token
+  resetPassword: async (req: Request, res: Response): Promise<void> => {
+    try {
+      const { token, password } = req.body;
+      
+      if (!token || !password) {
+        sendError(res, 'Token and password are required', ErrorCodes.BAD_REQUEST);
+        return;
+      }
+      
+      // Hash token for comparison with stored hash
+      const hashedToken = crypto
+        .createHash('sha256')
+        .update(token)
+        .digest('hex');
+      
+      // Find user with valid reset token
+      const user = await User.findOne({
+        passwordResetToken: hashedToken,
+        passwordResetExpires: { $gt: new Date() }
+      });
+      
+      if (!user) {
+        sendError(
+          res, 
+          'Password reset token is invalid or has expired', 
+          ErrorCodes.BAD_REQUEST
+        );
+        return;
+      }
+      
+      // Update password and clear reset fields
+      user.password = await bcrypt.hash(password, 12);
+      user.passwordResetToken = undefined;
+      user.passwordResetExpires = undefined;
+      user.passwordChangedAt = new Date();
+      await user.save();
+      
+      // Send confirmation email
+      emailService.sendPasswordChangeNotification(user.email, user.firstName || 'User')
+        .catch(e => logger.error(`Password change notification failed: ${e}`));
+      
+      sendSuccess(
+        res, 
+        null, 
+        'Your password has been reset successfully. You can now log in with your new password.'
+      );
+      
+    } catch (error) {
+      logger.error(`Reset password error: ${error instanceof Error ? error.stack : error}`);
+      sendError(res, 'Failed to reset password', ErrorCodes.INTERNAL_SERVER_ERROR);
+    }
+  },
+
   
   // Get current user profile
   getProfile: async (req: Request, res: Response): Promise<void> => {
@@ -589,5 +707,38 @@ export const userController = {
       logger.error(`Delete user error: ${error}`);
       sendError(res, 'Failed to delete user', 500);
     }
-  }
+  },
+
+  // Logout user
+  logout: async (req: Request, res: Response): Promise<void> => {
+    try {
+      const { refreshToken } = req.body;
+  
+      if (!refreshToken) {
+        sendError(res, 'Refresh token is required', ErrorCodes.BAD_REQUEST);
+        return;
+      }
+  
+      // Verify token first to get expiration
+      const decoded = jwt.verify(refreshToken, env.JWT_REFRESH_SECRET) as { exp: number };
+      
+      // Store in blacklist
+      await BlacklistedToken.create({
+        token: refreshToken,
+        expiresAt: new Date(decoded.exp * 1000) // Convert JWT exp to Date
+      });
+  
+      sendSuccess(res, null, 'Logout successful');
+    } catch (error) {
+      if (error instanceof jwt.JsonWebTokenError) {
+        sendError(res, 'Invalid refresh token', ErrorCodes.UNAUTHORIZED);
+      } else {
+        logger.error(`Logout error: ${error instanceof Error ? error.stack : error}`);
+        sendError(res, 'Failed to logout', ErrorCodes.INTERNAL_SERVER_ERROR);
+      }
+    }
+  },
 };
+
+
+
