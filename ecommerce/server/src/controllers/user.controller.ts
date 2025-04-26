@@ -753,11 +753,11 @@ googleCallback: (req: Request, res: Response, next: any) => {
   passport.authenticate('google', async (err: Error, user: any, info: any) => {
     if (err) {
       logger.error(`Google auth callback error: ${err}`);
-      return res.redirect(`${env.FRONTEND_URL}/login?error=Google authentication failed`);
+      return res.redirect(`${env.CLIENT_URL}/login?error=Google authentication failed`);
     }
 
     if (!user) {
-      return res.redirect(`${env.FRONTEND_URL}/login?error=Could not authenticate with Google`);
+      return res.redirect(`${env.CLIENT_URL}/login?error=Could not authenticate with Google`);
     }
 
     try {
@@ -776,11 +776,11 @@ googleCallback: (req: Request, res: Response, next: any) => {
 
       // Redirect to frontend with tokens
       return res.redirect(
-        `${env.FRONTEND_URL}/social-auth-success?token=${token}&refreshToken=${refreshToken}`
+        `${env.CLIENT_URL}/social-auth-success?token=${token}&refreshToken=${refreshToken}`
       );
     } catch (error) {
       logger.error(`Failed to generate tokens: ${error}`);
-      return res.redirect(`${env.FRONTEND_URL}/login?error=Authentication successful but token generation failed`);
+      return res.redirect(`${env.CLIENT_URL}/login?error=Authentication successful but token generation failed`);
     }
   })(req, res, next);
 },
