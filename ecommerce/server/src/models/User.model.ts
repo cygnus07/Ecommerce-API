@@ -60,11 +60,20 @@ const userSchema = new Schema<UserDocument>({
   passwordResetExpires: { 
     type: Date 
   },
-  passwordChangedAt: Date
-,
+  passwordChangedAt: Date,
   emailVerified: { 
     type: Boolean, 
     default: false 
+  },
+  googleId: {
+    type: String,
+    sparse: true,
+    unique: true
+  },
+  facebookId: {
+    type: String,
+    sparse: true,
+    unique: true
   },
   emailVerificationToken: { 
     type: String 

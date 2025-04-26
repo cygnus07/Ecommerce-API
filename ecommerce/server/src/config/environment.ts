@@ -1,4 +1,5 @@
 import dotenv from 'dotenv';
+import { get } from 'http';
 import path from 'path';
 import { fileURLToPath } from 'url';
 
@@ -52,6 +53,16 @@ export const env = {
 
   FRONTEND_URL: getEnvVariable('FRONTEND_URL', 'http://www.greykiwi.com'),
   APP_NAME: getEnvVariable('APP_NAME', 'Shop AI'),
+
+
+  
+
+GOOGLE_CLIENT_ID: getEnvVariable('GOOGLE_CLIENT_ID', ''),
+GOOGLE_CLIENT_SECRET: getEnvVariable('GOOGLE_CLIENT_SECRET', ''),
+FACEBOOK_APP_ID: getEnvVariable('FACEBOOK_APP_ID', ''),
+FACEBOOK_APP_SECRET: getEnvVariable('FACEBOOK_APP_SECRET', ''),
+API_BASE_URL: getEnvVariable('API_BASE_URL', 'http://localhost:5000/api'),
+  SESSION_SECRET: getEnvVariable('SESSION_SECRET', ''),
   
   // Paths
   ROOT_DIR: rootDir,

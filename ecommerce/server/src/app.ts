@@ -9,6 +9,10 @@ import { logger } from './utils/logger.js';
 import { sendError, ErrorCodes } from './utils/apiResponse.js';
 import router from './routes/index.js'
 
+
+import passport from './config/passport.js';
+import session from 'express-session';
+
 /**
  * Express application setup
  */
@@ -22,6 +26,21 @@ export const createApp = (): Express => {
   // Security middleware
   app.use(helmet());
   app.use(cors());
+
+
+  app.use(session({
+    secret: env.SESSION_SECRET || 'keyboard cat', // A random string
+    resave: false,
+    saveUninitialized: false,
+    cookie: {
+      secure: env.NODE_ENV === 'production', // use secure cookies in production
+      httpOnly: true, // more security
+      maxAge: 24 * 60 * 60 * 1000, // 1 day
+    }
+  }));
+
+  app.use(passport.initialize());
+  app.use(passport.session());
   
   // Apply rate limiting
   const limiter = rateLimit({
@@ -60,7 +79,7 @@ export const createApp = (): Express => {
   
   // 404 handler
   app.use((req: Request, res: Response) => {
-    sendError(res, 'Resource not found', 404, ErrorCodes.NOT_FOUND);
+    sendError(res, 'Resource not found', ErrorCodes.NOT_FOUND);
   });
   
   // Global error handler
@@ -71,11 +90,24 @@ export const createApp = (): Express => {
     sendError(
       res,
       'Internal Server Error',
-      500,
       ErrorCodes.INTERNAL_SERVER_ERROR,
       env.NODE_ENV === 'development' ? { stack: err.stack } : undefined
     );
   });
+
+
+
+
+
+
+app.use(session({
+  secret: env.SESSION_SECRET || 'keyboard cat',
+  resave: false,
+  saveUninitialized: false,
+  cookie: { secure: env.NODE_ENV === 'production' }
+}));
+
+
   
   return app;
 };

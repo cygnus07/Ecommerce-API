@@ -9,6 +9,7 @@ import { logger } from '../utils/logger.js';
 import jwt from 'jsonwebtoken';
 import { withRetry } from '../utils/helper.js';
 import BlacklistedToken from '../models/BlacklistedToken.model.js';
+import passport from 'passport';
 // import nodemailer from 'nodemailer'
 
 import { 
@@ -738,6 +739,94 @@ export const userController = {
       }
     }
   },
+
+
+// Social Authentication - Google
+googleAuth: (req: Request, res: Response, next: any) => {
+  console.log('Google auth called');
+  passport.authenticate('google', {
+    scope: ['profile', 'email']
+  })(req, res, next);
+},
+
+googleCallback: (req: Request, res: Response, next: any) => {
+  passport.authenticate('google', async (err: Error, user: any, info: any) => {
+    if (err) {
+      logger.error(`Google auth callback error: ${err}`);
+      return res.redirect(`${env.FRONTEND_URL}/login?error=Google authentication failed`);
+    }
+
+    if (!user) {
+      return res.redirect(`${env.FRONTEND_URL}/login?error=Could not authenticate with Google`);
+    }
+
+    try {
+      // Generate JWT tokens
+      const token = jwt.sign(
+        { userId: user._id },
+        env.JWT_SECRET,
+        { expiresIn: env.JWT_EXPIRATION } as jwt.SignOptions  
+      );
+      
+      const refreshToken = jwt.sign(
+        { userId: user._id },
+        env.JWT_REFRESH_SECRET,
+        { expiresIn: env.JWT_REFRESH_EXPIRATION } as jwt.SignOptions
+      );
+
+      // Redirect to frontend with tokens
+      return res.redirect(
+        `${env.FRONTEND_URL}/social-auth-success?token=${token}&refreshToken=${refreshToken}`
+      );
+    } catch (error) {
+      logger.error(`Failed to generate tokens: ${error}`);
+      return res.redirect(`${env.FRONTEND_URL}/login?error=Authentication successful but token generation failed`);
+    }
+  })(req, res, next);
+},
+
+// Social Authentication - Facebook
+facebookAuth: (req: Request, res: Response, next: any) => {
+  passport.authenticate('facebook', {
+    scope: ['email']
+  })(req, res, next);
+},
+
+facebookCallback: (req: Request, res: Response, next: any) => {
+  passport.authenticate('facebook', async (err: Error, user: any, info: any) => {
+    if (err) {
+      logger.error(`Facebook auth callback error: ${err}`);
+      return res.redirect(`${env.FRONTEND_URL}/login?error=Facebook authentication failed`);
+    }
+
+    if (!user) {
+      return res.redirect(`${env.FRONTEND_URL}/login?error=Could not authenticate with Facebook`);
+    }
+
+    try {
+      // Generate JWT tokens
+      const token = jwt.sign(
+        { userId: user._id },
+        env.JWT_SECRET,
+        { expiresIn: env.JWT_EXPIRATION } as jwt.SignOptions
+      );
+      
+      const refreshToken = jwt.sign(
+        { userId: user._id },
+        env.JWT_REFRESH_SECRET,
+        { expiresIn: env.JWT_REFRESH_EXPIRATION } as jwt.SignOptions
+      );
+
+      // Redirect to frontend with tokens
+      return res.redirect(
+        `${env.FRONTEND_URL}/social-auth-success?token=${token}&refreshToken=${refreshToken}`
+      );
+    } catch (error) {
+      logger.error(`Failed to generate tokens: ${error}`);
+      return res.redirect(`${env.FRONTEND_URL}/login?error=Authentication successful but token generation failed`);
+    }
+  })(req, res, next);
+},
 };
 
 
