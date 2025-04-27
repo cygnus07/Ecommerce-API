@@ -11,8 +11,9 @@ passport.use(new GoogleStrategy(
   {
     clientID: env.GOOGLE_CLIENT_ID,
     clientSecret: env.GOOGLE_CLIENT_SECRET,
-    callbackURL: `${env.API_BASE_URL}/auth/google/callback`,
-    scope: ['profile', 'email']
+    callbackURL: `${env.API_BASE_URL}/api/v1/users/auth/google/callback`,
+    scope: ['profile', 'email'],
+    passReqToCallback: false
   },
   async (
     accessToken: string,
@@ -22,6 +23,12 @@ passport.use(new GoogleStrategy(
   ) => {
     try {
       const email = profile.emails?.[0]?.value;
+
+      // Handle missing lastName
+      const lastName = profile.name?.familyName || 
+                      (profile.displayName?.split(' ').length > 1 ? 
+                       profile.displayName.split(' ').slice(1).join(' ') : 
+                       'Unknown');
 
       const existingUser = await User.findOne({ 
         $or: [
@@ -44,7 +51,7 @@ passport.use(new GoogleStrategy(
         googleId: profile.id,
         email: email,
         firstName: profile.name?.givenName || profile.displayName?.split(' ')[0],
-        lastName: profile.name?.familyName || '',
+        lastName: lastName,
         password: randomPassword,
         emailVerified: true
       });

@@ -61,7 +61,7 @@ GOOGLE_CLIENT_ID: getEnvVariable('GOOGLE_CLIENT_ID', ''),
 GOOGLE_CLIENT_SECRET: getEnvVariable('GOOGLE_CLIENT_SECRET', ''),
 FACEBOOK_APP_ID: getEnvVariable('FACEBOOK_APP_ID', ''),
 FACEBOOK_APP_SECRET: getEnvVariable('FACEBOOK_APP_SECRET', ''),
-API_BASE_URL: getEnvVariable('API_BASE_URL', 'http://localhost:5000/api'),
+API_BASE_URL: getEnvVariable('API_BASE_URL', 'http://localhost:5000'),
   SESSION_SECRET: getEnvVariable('SESSION_SECRET', ''),
   CLIENT_URL: getEnvVariable('CLIENT_URL', 'http://localhost:5000'),
   

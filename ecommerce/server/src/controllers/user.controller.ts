@@ -750,7 +750,7 @@ googleAuth: (req: Request, res: Response, next: any) => {
 },
 
 googleCallback: (req: Request, res: Response, next: any) => {
-  passport.authenticate('google', async (err: Error, user: any, info: any) => {
+  passport.authenticate('google', { session: false }, async (err: Error, user: any, info: any) => {
     if (err) {
       logger.error(`Google auth callback error: ${err}`);
       return res.redirect(`${env.CLIENT_URL}/login?error=Google authentication failed`);
@@ -779,6 +779,7 @@ googleCallback: (req: Request, res: Response, next: any) => {
         `${env.CLIENT_URL}/social-auth-success?token=${token}&refreshToken=${refreshToken}`
       );
     } catch (error) {
+      // console.log('Google callback received with code:', req.query.code);
       logger.error(`Failed to generate tokens: ${error}`);
       return res.redirect(`${env.CLIENT_URL}/login?error=Authentication successful but token generation failed`);
     }
