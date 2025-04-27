@@ -1,20 +1,30 @@
 import { Request, Response } from 'express';
-import { Wishlist } from '../models/wishlist.model.js';
-import { Product } from '../models/product.model.js';
+import Wishlist from '../models/Wishlist.model.js';
+import Product from '../models/Product.model.js';
 import { sendSuccess, sendError, ErrorCodes } from '../utils/apiResponse.js';
 import { logger } from '../utils/logger.js';
+import { AddToWishlistRequest, WishlistItem, WishlistResponse } from '../types/wishlist.types.js';
+
+// Extend Express Request to include user property
+interface AuthenticatedRequest extends Request {
+  user: {
+    id: string;
+    [key: string]: any;
+  };
+}
 
 export const wishlistController = {
   /**
    * Get user's wishlist
    */
-  getWishlist: async (req: Request, res: Response) => {
+  getWishlist: async (req: Request, res: Response): Promise<void> => {
     try {
-      const userId = req.user.id;
+      // Type assertion for authenticated request
+      const userId = (req as AuthenticatedRequest).user.id;
       
       let wishlist = await Wishlist.findOne({ user: userId })
         .populate({
-          path: 'products',
+          path: 'items.product',
           select: 'name price images description avgRating reviewCount'
         });
       
@@ -22,29 +32,31 @@ export const wishlistController = {
         // Create a new wishlist if none exists
         wishlist = await Wishlist.create({
           user: userId,
-          products: []
+          items: []
         });
       }
       
-      return sendSuccess(res, wishlist, 'Wishlist retrieved successfully');
+      sendSuccess(res, wishlist, 'Wishlist retrieved successfully');
     } catch (err) {
-      logger.error(`Error getting wishlist: ${err.message}`);
-      return sendError(res, 'Failed to get wishlist');
+      const errorMessage = err instanceof Error ? err.message : 'Unknown error';
+      logger.error(`Error getting wishlist: ${errorMessage}`);
+      sendError(res, 'Failed to get wishlist');
     }
   },
   
   /**
    * Add product to wishlist
    */
-  addToWishlist: async (req: Request, res: Response) => {
+  addToWishlist: async (req: Request, res: Response): Promise<void> => {
     try {
-      const { productId } = req.body;
-      const userId = req.user.id;
+      const { productId, variant } = req.body as AddToWishlistRequest;
+      const userId = (req as AuthenticatedRequest).user.id;
       
       // Validate product exists
       const product = await Product.findById(productId);
       if (!product) {
-        return sendError(res, 'Product not found', 404, ErrorCodes.NOT_FOUND);
+        sendError(res, 'Product not found', ErrorCodes.NOT_FOUND);
+        return;
       }
       
       // Find existing wishlist or create new one
@@ -53,88 +65,116 @@ export const wishlistController = {
       if (!wishlist) {
         wishlist = await Wishlist.create({
           user: userId,
-          products: [productId]
+          items: [{
+            product: productId,
+            variant,
+            addedAt: new Date()
+          }]
         });
       } else {
         // Check if product already in wishlist
-        if (wishlist.products.includes(productId)) {
-          return sendSuccess(res, wishlist, 'Product already in wishlist');
+        const existingItemIndex = wishlist.items.findIndex(
+          (item: WishlistItem) => item.product.toString() === productId && item.variant === variant
+        );
+        
+        if (existingItemIndex !== -1) {
+          sendSuccess(res, wishlist, 'Product already in wishlist');
+          return;
         }
         
         // Add product to wishlist
-        wishlist.products.push(productId);
+        wishlist.items.push({
+          product: productId,
+          variant,
+          addedAt: new Date()
+        });
+        
         await wishlist.save();
       }
       
       // Return populated wishlist
       const populatedWishlist = await Wishlist.findById(wishlist._id)
         .populate({
-          path: 'products',
+          path: 'items.product',
           select: 'name price images description avgRating reviewCount'
         });
       
-      return sendSuccess(res, populatedWishlist, 'Product added to wishlist');
+      sendSuccess(res, populatedWishlist, 'Product added to wishlist');
     } catch (err) {
-      logger.error(`Error adding to wishlist: ${err.message}`);
-      return sendError(res, 'Failed to add product to wishlist');
+      const errorMessage = err instanceof Error ? err.message : 'Unknown error';
+      logger.error(`Error adding to wishlist: ${errorMessage}`);
+      sendError(res, 'Failed to add product to wishlist');
     }
   },
   
   /**
    * Remove product from wishlist
    */
-  removeFromWishlist: async (req: Request, res: Response) => {
+  removeFromWishlist: async (req: Request, res: Response): Promise<void> => {
     try {
       const { productId } = req.params;
-      const userId = req.user.id;
+      const variant = req.query.variant as string | undefined;
+      const userId = (req as AuthenticatedRequest).user.id;
       
       const wishlist = await Wishlist.findOne({ user: userId });
       
       if (!wishlist) {
-        return sendError(res, 'Wishlist not found', 404, ErrorCodes.NOT_FOUND);
+        sendError(res, 'Wishlist not found', ErrorCodes.NOT_FOUND);
+        return;
       }
       
       // Filter out the product
-      wishlist.products = wishlist.products.filter(
-        product => product.toString() !== productId
-      );
+      if (variant) {
+        // Filter out specific product variant
+        wishlist.items = wishlist.items.filter(
+          (item: WishlistItem) => !(item.product.toString() === productId && item.variant === variant)
+        );
+      } else {
+        // Filter out all instances of the product regardless of variant
+        wishlist.items = wishlist.items.filter(
+          (item: WishlistItem) => item.product.toString() !== productId
+        );
+      }
       
       await wishlist.save();
       
       // Return populated wishlist
       const populatedWishlist = await Wishlist.findById(wishlist._id)
         .populate({
-          path: 'products',
+          path: 'items.product',
           select: 'name price images description avgRating reviewCount'
         });
       
-      return sendSuccess(res, populatedWishlist, 'Product removed from wishlist');
+      sendSuccess(res, populatedWishlist, 'Product removed from wishlist');
     } catch (err) {
-      logger.error(`Error removing from wishlist: ${err.message}`);
-      return sendError(res, 'Failed to remove product from wishlist');
+      const errorMessage = err instanceof Error ? err.message : 'Unknown error';
+      logger.error(`Error removing from wishlist: ${errorMessage}`);
+      sendError(res, 'Failed to remove product from wishlist');
     }
   },
   
   /**
    * Clear wishlist
    */
-  clearWishlist: async (req: Request, res: Response) => {
+  clearWishlist: async (req: Request, res: Response): Promise<void> => {
     try {
-      const userId = req.user.id;
+      const userId = (req as AuthenticatedRequest).user.id;
       
       const wishlist = await Wishlist.findOne({ user: userId });
       
       if (!wishlist) {
-        return sendError(res, 'Wishlist not found', 404, ErrorCodes.NOT_FOUND);
+        sendError(res, 'Wishlist not found', ErrorCodes.NOT_FOUND);
+        return;
       }
       
-      wishlist.products = [];
+      wishlist.items = [];
       await wishlist.save();
       
-      return sendSuccess(res, wishlist, 'Wishlist cleared successfully');
+      sendSuccess(res, wishlist, 'Wishlist cleared successfully');
     } catch (err) {
-      logger.error(`Error clearing wishlist: ${err.message}`);
-      return sendError(res, 'Failed to clear wishlist');
+      const errorMessage = err instanceof Error ? err.message : 'Unknown error';
+      logger.error(`Error clearing wishlist: ${errorMessage}`);
+      sendError(res, 'Failed to clear wishlist');
     }
   }
 };

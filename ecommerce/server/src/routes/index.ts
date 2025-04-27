@@ -24,7 +24,7 @@ router.use('/orders', orderRoutes);
 router.use('/cart', cartRoutes);
 router.use('/reviews', reviewRoutes);
 // router.use('/coupons', couponRoutes);
-// router.use('/wishlist', wishlistRoutes);
+router.use('/wishlist', wishlistRoutes);
 router.use('/inventory', inventoryActivityRoutes);
 // router.use('/search', searchRoutes);
 // router.use('/analytics', analyticsRoutes);

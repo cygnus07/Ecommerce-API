@@ -1,12 +1,16 @@
 // src/validators/wishlist.validator.ts
-import { body, param } from 'express-validator';
+import { z } from 'zod';
 
 export const wishlistValidators = {
-  addToWishlist: [
-    body('productId').isMongoId().withMessage('Valid product ID is required')
-  ],
+  addToWishlist: z.object({
+    productId: z.string().regex(/^[0-9a-fA-F]{24}$/, 'Valid product ID is required')
+  }),
   
-  removeFromWishlist: [
-    param('productId').isMongoId().withMessage('Valid product ID is required')
-  ]
+  removeFromWishlist: z.object({
+    productId: z.string().regex(/^[0-9a-fA-F]{24}$/, 'Valid product ID is required')
+  })
 };
+
+// For use with express, you might want to export the schemas as:
+export const addToWishlistSchema = wishlistValidators.addToWishlist;
+export const removeFromWishlistSchema = wishlistValidators.removeFromWishlist;
