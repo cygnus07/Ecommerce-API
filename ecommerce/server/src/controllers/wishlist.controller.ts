@@ -3,7 +3,8 @@ import Wishlist from '../models/Wishlist.model.js';
 import Product from '../models/Product.model.js';
 import { sendSuccess, sendError, ErrorCodes } from '../utils/apiResponse.js';
 import { logger } from '../utils/logger.js';
-import { AddToWishlistRequest, WishlistItem, WishlistResponse } from '../types/wishlist.types.js';
+import { AddToWishlistRequest, WishlistItem } from '../types/wishlist.types.js';
+import mongoose from 'mongoose';
 
 // Extend Express Request to include user property
 interface AuthenticatedRequest extends Request {
@@ -19,14 +20,14 @@ export const wishlistController = {
    */
   getWishlist: async (req: Request, res: Response): Promise<void> => {
     try {
-      // Type assertion for authenticated request
       const userId = (req as AuthenticatedRequest).user.id;
       
       let wishlist = await Wishlist.findOne({ user: userId })
         .populate({
           path: 'items.product',
           select: 'name price images description avgRating reviewCount'
-        });
+        })
+        .populate('items.variant');
       
       if (!wishlist) {
         // Create a new wishlist if none exists
@@ -59,6 +60,12 @@ export const wishlistController = {
         return;
       }
       
+      // Validate variant if provided
+      if (variant && !mongoose.Types.ObjectId.isValid(variant)) {
+        sendError(res, 'Invalid variant ID', ErrorCodes.BAD_REQUEST);
+        return;
+      }
+      
       // Find existing wishlist or create new one
       let wishlist = await Wishlist.findOne({ user: userId });
       
@@ -67,14 +74,18 @@ export const wishlistController = {
           user: userId,
           items: [{
             product: productId,
-            variant,
+            variant: variant ? variant : undefined,
             addedAt: new Date()
           }]
         });
       } else {
         // Check if product already in wishlist
         const existingItemIndex = wishlist.items.findIndex(
-          (item: WishlistItem) => item.product.toString() === productId && item.variant === variant
+          (item: WishlistItem) => {
+            const productMatch = item.product.toString() === productId;
+            if (!variant) return productMatch && !item.variant;
+            return productMatch && item.variant?.toString() === variant;
+          }
         );
         
         if (existingItemIndex !== -1) {
@@ -85,7 +96,7 @@ export const wishlistController = {
         // Add product to wishlist
         wishlist.items.push({
           product: productId,
-          variant,
+          variant: variant ? variant : undefined,
           addedAt: new Date()
         });
         
@@ -97,7 +108,8 @@ export const wishlistController = {
         .populate({
           path: 'items.product',
           select: 'name price images description avgRating reviewCount'
-        });
+        })
+        .populate('items.variant');
       
       sendSuccess(res, populatedWishlist, 'Product added to wishlist');
     } catch (err) {
@@ -127,7 +139,8 @@ export const wishlistController = {
       if (variant) {
         // Filter out specific product variant
         wishlist.items = wishlist.items.filter(
-          (item: WishlistItem) => !(item.product.toString() === productId && item.variant === variant)
+          (item: WishlistItem) => !(item.product.toString() === productId && 
+                                  item.variant?.toString() === variant)
         );
       } else {
         // Filter out all instances of the product regardless of variant
@@ -143,7 +156,8 @@ export const wishlistController = {
         .populate({
           path: 'items.product',
           select: 'name price images description avgRating reviewCount'
-        });
+        })
+        .populate('items.variant');
       
       sendSuccess(res, populatedWishlist, 'Product removed from wishlist');
     } catch (err) {
