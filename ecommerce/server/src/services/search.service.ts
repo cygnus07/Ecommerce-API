@@ -1,6 +1,6 @@
 // src/services/search.service.ts
-import { Product } from '../models/product.model.js';
-import { Category } from '../models/category.model.js';
+import  Product  from '../models/Product.model.js';
+import  Category  from '../models/Category.model.js';
 import { logger } from '../utils/logger.js';
 
 export const searchService = {
