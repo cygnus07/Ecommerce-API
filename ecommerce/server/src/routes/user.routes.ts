@@ -35,8 +35,8 @@ router.get('/auth/google', userController.googleAuth);
 router.get('/auth/google/callback', userController.googleCallback);
 
 // Facebook OAuth routes
-router.get('/auth/facebook', userController.facebookAuth);
-router.get('/auth/facebook/callback', userController.facebookCallback);
+// router.get('/auth/facebook', userController.facebookAuth);
+// router.get('/auth/facebook/callback', userController.facebookCallback);
 
 
 // Authenticated routes

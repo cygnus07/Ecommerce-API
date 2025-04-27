@@ -70,8 +70,8 @@ passport.use(new FacebookStrategy(
   {
     clientID: env.FACEBOOK_APP_ID,
     clientSecret: env.FACEBOOK_APP_SECRET,
-    callbackURL: `${env.API_BASE_URL}/auth/facebook/callback`,
-    profileFields: ['id', 'emails', 'name']
+    callbackURL: `${env.API_BASE_URL}/api/v1/users/auth/facebook/callback`,
+    profileFields: ['id', 'emails', 'name', 'displayName'],
   },
   async (
     accessToken: string,
