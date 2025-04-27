@@ -80,13 +80,16 @@ export const reviewController = {
   getProductReviews: async (req: Request, res: Response): Promise<void> => {
     try {
       const { productId } = req.params;
-      
+      // console.log(productId);
       const reviews = await Review.find({ 
         product: productId,
         status: 'approved' // Only return approved reviews
       })
+      
         .populate('user', 'name email')
         .sort({ createdAt: -1 });
+
+        // console.log(reviews)
 
       sendSuccess(res, reviews, 'Reviews retrieved successfully');
     } catch (err) {
