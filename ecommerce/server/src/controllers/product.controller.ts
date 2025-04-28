@@ -44,6 +44,8 @@ export const productController = {
         status
       } = req.body;
 
+      console.log("I am not getting here")
+
       // Validate required fields
       if (!name || !slug || !description || !categoryId || !variants || variants.length === 0) {
         sendError(res, 'Missing required fields',  ErrorCodes.VALIDATION_ERROR);
