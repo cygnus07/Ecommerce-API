@@ -52,7 +52,7 @@ export const cartController = {
       // Validate product
       const product = await Product.findById(productId);
       if (!product) {
-        sendError(res, 'Product not found', 404, ErrorCodes.NOT_FOUND);
+        sendError(res, 'Product not found', ErrorCodes.NOT_FOUND);
         return;
       }
       
@@ -64,7 +64,7 @@ export const cartController = {
       
       // Check stock
       if (product.stockQuantity < quantity) {
-        sendError(res, 'Not enough stock available', 400, ErrorCodes.BAD_REQUEST);
+        sendError(res, 'Not enough stock available', ErrorCodes.BAD_REQUEST);
         return;
       }
       
@@ -85,7 +85,7 @@ export const cartController = {
         
         // Check if new quantity exceeds stock
         if (newQuantity > product.stockQuantity) {
-          sendError(res, 'Requested quantity exceeds available stock', 400, ErrorCodes.BAD_REQUEST);
+          sendError(res, 'Requested quantity exceeds available stock', ErrorCodes.BAD_REQUEST);
           return;
         }
         

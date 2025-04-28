@@ -1,5 +1,5 @@
 import { Request, Response } from 'express';
-import { Coupon } from '../models/coupon.model.js';
+import  Coupon  from '../models/Coupon.model.js';
 import { sendSuccess, sendError, ErrorCodes } from '../utils/apiResponse.js';
 import { logger } from '../utils/logger.js';
 
@@ -29,7 +29,6 @@ export const couponController = {
         return sendError(
           res, 
           'Coupon code already exists', 
-          409, 
           ErrorCodes.CONFLICT
         );
       }

@@ -30,5 +30,10 @@ router.put(
   validate(orderStatusSchema),
   orderController.updateOrderStatus
 );
+router.post(
+  '/:id/invoice',
+  validate(orderIdParamsSchema, 'params'),
+  orderController.generateInvoice
+);
 
 export default router;
