@@ -64,9 +64,12 @@ export const productCreateSchema = z.object({
     .regex(/^[0-9a-fA-F]+$/, 'Category ID must be a valid hexadecimal'),
   variants: z.array(variantSchema)
     .min(1, 'At least one variant is required'),
-  tags: z.array(z.string()).or(
-    z.string().transform(str => str.split(',').map(tag => tag.trim()))
-  ).optional(),
+  tags: z.array(z.string()) // Accept array
+    .or(z.string().transform(str => 
+      str.split(',').map(tag => tag.trim()) // Convert string to array
+    )) 
+    .optional()
+    .default([]), // Default to empty array
   specifications: z.record(z.unknown()) // Allows any key-value object
     .or(z.string().transform(str => JSON.parse(str)))
     .optional(),

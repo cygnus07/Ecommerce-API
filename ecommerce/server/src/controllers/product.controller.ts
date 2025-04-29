@@ -44,7 +44,6 @@ export const productController = {
         status
       } = req.body;
 
-      console.log("I am not getting here")
 
       // Validate required fields
       if (!name || !slug || !description || !categoryId || !variants || variants.length === 0) {
@@ -80,7 +79,7 @@ export const productController = {
         category: categoryId,
         variants: preparedVariants,
         status: status || 'draft',
-        tags: tags ? tags.split(',').map(tag => tag.trim()) : [],
+        tags: tags ? (Array.isArray(tags) ? tags : tags.split(',').map(tag => tag.trim()) ) : [],
         specifications: typeof specifications === 'string' 
           ? JSON.parse(specifications) 
           : specifications,
