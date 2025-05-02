@@ -4,8 +4,10 @@ import Category from '../models/Category.model.js';
 import { sendSuccess, sendError, ErrorCodes } from '../utils/apiResponse.js';
 import { logger } from '../utils/logger.js';
 import { Types } from 'mongoose';
+import { AuthenticatedRequest } from '../types/user.types.js';
+import { ProductStatus } from '../types/product.types.js'
 
-interface CreateProductBody {
+interface CreateProductBody  {
   name: string;
   slug: string;
   description: string;
@@ -30,7 +32,7 @@ interface UpdateProductBody extends Partial<CreateProductBody> {
 
 export const productController = {
   // Create a new product with variants
-  createProduct: async (req: Request<{}, {}, CreateProductBody>, res: Response): Promise<void> => {
+  createProduct: async (req: AuthenticatedRequest, res: Response): Promise<void> => {
     try {
       const { 
         name,
@@ -64,7 +66,14 @@ export const productController = {
         : [];
 
       // Prepare variants (first one will be default via pre-save hook)
-      const preparedVariants = variants.map((variant, index) => ({
+      const preparedVariants = variants.map((variant: {
+        sku: string;
+        price: number;
+        compareAtPrice?: number;
+        inventory?: number;
+        weight?: number;
+        barcode?: string;
+      }, index: number) => ({
         ...variant,
         inventory: variant.inventory || 0,
         images: index === 0 ? images : [], // Assign images to first variant
@@ -79,7 +88,7 @@ export const productController = {
         category: categoryId,
         variants: preparedVariants,
         status: status || 'draft',
-        tags: tags ? (Array.isArray(tags) ? tags : tags.split(',').map(tag => tag.trim()) ) : [],
+        tags: tags ? (Array.isArray(tags) ? tags : tags.split(',').map((tag: string) => tag.trim()) ) : [],
         specifications: typeof specifications === 'string' 
           ? JSON.parse(specifications) 
           : specifications,
@@ -214,7 +223,7 @@ export const productController = {
   },
 
   // Update a product
-  updateProduct: async (req: Request<{id: string}, {}, UpdateProductBody>, res: Response): Promise<void> => {
+  updateProduct: async (req: AuthenticatedRequest, res: Response): Promise<void> => {
     try {
       const productId = req.params.id;
       const {
@@ -251,7 +260,7 @@ export const productController = {
       
       // Remove selected images if any
       if (removeImages) {
-        const imagesToRemove = removeImages.split(',').map(img => img.trim());
+        const imagesToRemove = removeImages.split(',').map((img: string) => img.trim());
         images = images.filter(img => !imagesToRemove.includes(img));
       }
 
@@ -266,7 +275,7 @@ export const productController = {
         name: name || product.name,
         description: description || product.description,
         category: categoryId || product.category,
-        tags: tags ? tags.split(',').map(tag => tag.trim()) : product.tags,
+        tags: tags ? tags.split(',').map((tag: string) => tag.trim()) : product.tags,
         images,
         specifications: specifications 
           ? (typeof specifications === 'string' 
@@ -284,7 +293,14 @@ export const productController = {
 
       // Update variants if provided
       if (variants && variants.length > 0) {
-        updateData.variants = variants.map(variant => ({
+        updateData.variants = variants.map((variant: {
+          sku: string;
+          price: number;
+          compareAtPrice?: number;
+          inventory?: number;
+          weight?: number;
+          barcode?: string;
+        }) => ({
           ...variant,
           inventory: variant.inventory ?? 0
         }));

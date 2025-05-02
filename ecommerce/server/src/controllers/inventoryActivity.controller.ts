@@ -5,26 +5,28 @@ import { sendSuccess, sendError, ErrorCodes } from '../utils/apiResponse.js';
 import { logger } from '../utils/logger.js';
 import { InventoryActivityType } from '../models/InventoryActivity.model.js';
 import mongoose from 'mongoose';
+import { AuthenticatedRequest } from '../types/user.types.js';
+import { error } from 'console';
 
 export const inventoryActivityController = {
   /**
    * Log inventory activity
    */
-  logActivity: async (req: Request, res: Response): Promise<void> => {
+  logActivity: async (req: AuthenticatedRequest, res: Response): Promise<void> => {
     try {
       const { product, type, quantity, variant, reference, note } = req.body;
-      const userId = req.user.id;
+      const userId = req.user._id;
       
       // Validate product exists
       const productDoc = await Product.findById(product);
       if (!productDoc) {
-        sendError(res, 'Product not found', 404, ErrorCodes.NOT_FOUND);
+        sendError(res, 'Product not found', ErrorCodes.NOT_FOUND);
         return;
       }
 
       // Validate variant exists if provided
-      if (variant && !productDoc.variants.some(v => v._id.equals(variant))) {
-        sendError(res, 'Variant not found', 404, ErrorCodes.NOT_FOUND);
+      if (variant && !productDoc.variants.some((v: any) => v._id.equals(variant))) {
+        sendError(res, 'Variant not found', ErrorCodes.NOT_FOUND);
         return;
       }
       
@@ -83,7 +85,8 @@ export const inventoryActivityController = {
       
       sendSuccess(res, activity, 'Inventory activity logged successfully', 201);
     } catch (err) {
-      logger.error(`Error logging inventory activity: ${err.message}`);
+      const errorMessage = err instanceof Error ? err.message : 'Unknown error';
+      logger.error(`Error logging inventory activity: ${errorMessage}`);
       sendError(res, 'Failed to log inventory activity');
     }
 },
@@ -116,7 +119,8 @@ export const inventoryActivityController = {
         }
       }, 'Inventory activities retrieved successfully');
     } catch (err) {
-      logger.error(`Error getting inventory activities: ${err.message}`);
+      const errorMessage = err instanceof Error ? err.message : 'Unknown error';
+      logger.error(`Error getting inventory activities: ${errorMessage}`);
       sendError(res, 'Failed to get inventory activities');
     }
   },
@@ -182,7 +186,8 @@ export const inventoryActivityController = {
         }
       }, 'Inventory activities retrieved successfully');
     } catch (err) {
-      logger.error(`Error getting all inventory activities: ${err.message}`);
+      const errorMessage = err instanceof Error ? err.message : 'Unknown error';
+      logger.error(`Error getting all inventory activities: ${errorMessage}`);
       sendError(res, 'Failed to get inventory activities');
     }
   },
@@ -255,7 +260,8 @@ export const inventoryActivityController = {
       const summary = await InventoryActivity.aggregate(aggregation);
       sendSuccess(res, summary, 'Inventory activity summary retrieved successfully');
     } catch (err) {
-      logger.error(`Error getting inventory activity summary: ${err.message}`);
+      const errorMessage = err instanceof Error ? err.message : 'Unknown error';
+      logger.error(`Error getting inventory activity summary: ${errorMessage}`);
       sendError(res, 'Failed to get inventory activity summary');
     }
   }
