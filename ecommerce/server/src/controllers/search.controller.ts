@@ -3,9 +3,10 @@ import { searchService } from '../services/search.service.js';
 import { sendSuccess, sendError } from '../utils/apiResponse.js';
 import { logger } from '../utils/logger.js';
 import { SearchProductsQuery, SearchSuggestionsQuery } from '../types/search.types.js'
+import { AuthenticatedRequest } from '../types/user.types.js';
 
 
-interface RequestWithPagination extends Request {
+interface RequestWithPagination extends AuthenticatedRequest {
   pagination: {
     page: number;
     limit: number;

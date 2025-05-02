@@ -52,19 +52,21 @@ export interface UserDocument {
 }
 
 // For when you just need the basic user identification
-export interface AuthUser extends UserDocument,Document {
+export interface AuthUser {
   _id: Types.ObjectId;
   email: string;
-  role: UserRole;
-  
+  role: string;
+  [key: string]: any; // For additional properties
 }
 
-// For Express Request typing
 export interface AuthenticatedRequest extends Request {
-  user: AuthUser & {
-    id: string; // If you need the string version of the ID
-    [key: string]: any; // For any additional properties
-  };
+  user: AuthUser;
+}
+
+declare module 'express' {
+  interface Request {
+    user?: AuthUser;
+  }
 }
 
 // Keep your existing IUser if needed for other purposes
@@ -72,10 +74,3 @@ export interface IUser {
   _id: string | Types.ObjectId | { toString(): string };
 }
 
-declare global {
-  namespace Express {
-    interface Request {
-      user?: AuthUser;
-    }
-  }
-}

@@ -7,8 +7,9 @@ import {
   productIdParamsSchema,
   productQuerySchema
 } from '../validators/product.validator.js';
-import { upload } from "../utils/fileUpload.js";
+// import { upload } from "../utils/fileUpload.js";
 import { auth } from '../middlewares/auth.middleware.js'; // Now importing the auth object
+import { withAuth } from '../middlewares/auth.middleware.js';
 
 const router = Router();
 
@@ -18,7 +19,7 @@ router.post(
   auth.admin, // Uses both authenticate and authorize
   // upload.array('images', 5),
   validate(productCreateSchema),
-  productController.createProduct
+  withAuth(productController.createProduct)
 );
 
 // Option 2: Using separate middlewares (alternative)
@@ -54,7 +55,7 @@ router.put(
   // upload.array('images', 5),
   validate(productIdParamsSchema, 'params'),
   validate(productUpdateSchema, 'body'),
-  productController.updateProduct
+  withAuth(productController.updateProduct)
 );
 
 // Delete a product (Admin only)

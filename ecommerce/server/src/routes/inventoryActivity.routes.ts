@@ -4,6 +4,7 @@ import { authenticate, authorize } from '../middlewares/auth.middleware.js';
 import { validate } from '../middlewares/validation.middleware.js';
 import { inventoryActivityValidators } from '../validators/inventoryActivity.validator.js';
 import { paginate } from '../middlewares/pagination.middleware.js';
+import { withAuth } from '../middlewares/auth.middleware.js';
 
 const router = express.Router();
 
@@ -14,7 +15,7 @@ router.use(authorize('admin'));
 router.post(
   '/', 
   validate(inventoryActivityValidators.logActivity),
-  inventoryActivityController.logActivity
+  withAuth(inventoryActivityController.logActivity)
 );
 
 router.get(

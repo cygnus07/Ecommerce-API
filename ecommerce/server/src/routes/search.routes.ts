@@ -2,6 +2,7 @@ import express from 'express';
 import { searchController } from '../controllers/search.controller.js';
 import { paginate } from '../middlewares/pagination.middleware.js';
 import { validateSearchQuery, validateSuggestionsQuery } from '../validators/search.validator.js'
+import { withAuth } from '../middlewares/auth.middleware.js';
 
 const router = express.Router();
 
@@ -13,7 +14,7 @@ router.get(
   '/products', 
   paginate, 
   validateSearchQuery, 
-  searchController.searchProducts
+  withAuth(searchController.searchProducts)
 );
 
 /**

@@ -2,6 +2,7 @@ import { Router } from 'express';
 import { userController } from '../controllers/user.controller.js';
 import { authenticate, authorize } from '../middlewares/auth.middleware.js';
 import { validate } from '../middlewares/validation.middleware.js';
+import { withAuth } from '../middlewares/auth.middleware.js';
 import { 
   registerSchema,
   loginSchema,
@@ -42,8 +43,8 @@ router.get('/auth/google/callback', userController.googleCallback);
 // Authenticated routes
 router.use(authenticate);
 router.get('/profile', userController.getProfile);
-router.put('/profile', validate(updateProfileSchema), userController.updateProfile);
-router.put('/change-password', validate(changePasswordSchema), userController.changePassword);
+router.put('/profile', validate(updateProfileSchema), withAuth(userController.updateProfile));
+router.put('/change-password', validate(changePasswordSchema), withAuth(userController.changePassword));
 router.post('/logout', userController.logout);
 
 // Admin routes

@@ -1,20 +1,36 @@
-import { Request, Response, NextFunction } from 'express';
+import { Request, Response, NextFunction, RequestHandler } from 'express';
 import jwt from 'jsonwebtoken';
 import { env } from '../config/environment.js';
 import { ErrorCodes } from '../utils/apiResponse.js';
 import User from '../models/User.model.js';
 import { logger } from '../utils/logger.js';
 import BlacklistedToken from '../models/BlacklistedToken.model.js';
+import { AuthenticatedRequest, AuthUser } from '../types/user.types.js';
 
-// Extend Express Request type
+
+// Add a proper type declaration to extend Express.Request
 declare global {
   namespace Express {
+    interface User extends AuthUser {} // Make Express.User compatible with AuthUser
+    
     interface Request {
-      user?: any;
       token?: string;
     }
   }
 }
+
+
+export const withAuth = <T extends Request>(
+  handler: (req: T & AuthenticatedRequest, res: Response, next?: NextFunction) => Promise<void> | void
+): RequestHandler => {
+  return async (req: Request, res: Response, next: NextFunction) => {
+    try {
+      await handler(req as T & AuthenticatedRequest, res, next);
+    } catch (error) {
+      next(error);
+    }
+  };
+};
 
 // Main authentication middleware
 const authenticate = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
