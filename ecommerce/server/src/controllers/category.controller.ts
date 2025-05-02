@@ -16,7 +16,7 @@ export const categoryController = {
       // Check if category with same name exists
       const existingCategory = await Category.findOne({ name });
       if (existingCategory) {
-        sendError(res, 'Category with this name already exists', 409, ErrorCodes.CONFLICT);
+        sendError(res, 'Category with this name already exists', ErrorCodes.CONFLICT);
         return;
       }
       
@@ -24,7 +24,7 @@ export const categoryController = {
       if (parentId) {
         const parentCategory = await Category.findById(parentId);
         if (!parentCategory) {
-          sendError(res, 'Parent category not found', 404, ErrorCodes.NOT_FOUND);
+          sendError(res, 'Parent category not found',  ErrorCodes.NOT_FOUND);
           return;
         }
       }
@@ -32,7 +32,7 @@ export const categoryController = {
       const slug = slugifyFn(name, { lower: true, strict: true });
       const existingSlug = await Category.findOne({ slug})
       if (existingSlug) {
-        sendError(res, 'Category with this slug already exists', 409, ErrorCodes.CONFLICT);
+        sendError(res, 'Category with this slug already exists',  ErrorCodes.CONFLICT);
         return;
       }
       // Create category
@@ -92,7 +92,7 @@ export const categoryController = {
         .populate('subcategories', 'name description');
       
       if (!category) {
-        sendError(res, 'Category not found', 404, ErrorCodes.NOT_FOUND);
+        sendError(res, 'Category not found', ErrorCodes.NOT_FOUND);
         return;
       }
       
@@ -114,7 +114,7 @@ export const categoryController = {
       // Check if category exists
       const category = await Category.findById(categoryId);
       if (!category) {
-        sendError(res, 'Category not found', 404, ErrorCodes.NOT_FOUND);
+        sendError(res, 'Category not found', ErrorCodes.NOT_FOUND);
         return;
       }
       
@@ -178,14 +178,14 @@ export const categoryController = {
         });
         
         if (existingCategory) {
-          sendError(res, 'Category with this name already exists', 409, ErrorCodes.CONFLICT);
+          sendError(res, 'Category with this name already exists', ErrorCodes.CONFLICT);
           return;
         }
       }
       
       // Prevent category from being its own parent
       if (parentId && parentId === categoryId) {
-        sendError(res, 'Category cannot be its own parent', 400, ErrorCodes.BAD_REQUEST);
+        sendError(res, 'Category cannot be its own parent',  ErrorCodes.BAD_REQUEST);
         return;
       }
       
@@ -193,7 +193,7 @@ export const categoryController = {
       if (parentId) {
         const parentCategory = await Category.findById(parentId);
         if (!parentCategory) {
-          sendError(res, 'Parent category not found', 404, ErrorCodes.NOT_FOUND);
+          sendError(res, 'Parent category not found', ErrorCodes.NOT_FOUND);
           return;
         }
         
@@ -201,7 +201,7 @@ export const categoryController = {
         let currentParent = parentCategory;
         while (currentParent.parent) {
           if (currentParent.parent.toString() === categoryId) {
-            sendError(res, 'Circular reference detected in category hierarchy', 400, ErrorCodes.BAD_REQUEST);
+            sendError(res, 'Circular reference detected in category hierarchy', ErrorCodes.BAD_REQUEST);
             return;
           }
           currentParent = await Category.findById(currentParent.parent);
@@ -220,7 +220,7 @@ export const categoryController = {
       );
       
       if (!updatedCategory) {
-        sendError(res, 'Category not found', 404, ErrorCodes.NOT_FOUND);
+        sendError(res, 'Category not found', ErrorCodes.NOT_FOUND);
         return;
       }
       
@@ -239,21 +239,21 @@ export const categoryController = {
       // Check if category has products
       const productsCount = await Product.countDocuments({ category: categoryId });
       if (productsCount > 0) {
-        sendError(res, 'Cannot delete a category with products', 400, ErrorCodes.BAD_REQUEST);
+        sendError(res, 'Cannot delete a category with products', ErrorCodes.BAD_REQUEST);
         return;
       }
       
       // Check if category has subcategories
       const subcategoriesCount = await Category.countDocuments({ parent: categoryId });
       if (subcategoriesCount > 0) {
-        sendError(res, 'Cannot delete a category with subcategories', 400, ErrorCodes.BAD_REQUEST);
+        sendError(res, 'Cannot delete a category with subcategories', ErrorCodes.BAD_REQUEST);
         return;
       }
       
       const category = await Category.findByIdAndDelete(categoryId);
       
       if (!category) {
-        sendError(res, 'Category not found', 404, ErrorCodes.NOT_FOUND);
+        sendError(res, 'Category not found', ErrorCodes.NOT_FOUND);
         return;
       }
       
