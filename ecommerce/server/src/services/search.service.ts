@@ -65,7 +65,9 @@ export const searchService = {
         }
       };
     } catch (err) {
-      logger.error(`Error searching products: ${err.message}`);
+      const errorMessage = err instanceof Error ? err.message : 'Unknown error';
+      logger.error(`Error searching products: ${errorMessage}`);
+      // logger.error(`Error searching products: ${err.message}`);
       throw err;
     }
   },
@@ -94,7 +96,9 @@ export const searchService = {
         categories: categorySuggestions
       };
     } catch (err) {
-      logger.error(`Error getting product suggestions: ${err.message}`);
+      const errorMessage = err instanceof Error ? err.message : 'Unknown error';
+      logger.error(`Error getting product suggestions: ${errorMessage}`);
+      // logger.error(`Error getting product suggestions: ${err.message}`);
       throw err;
     }
   }
