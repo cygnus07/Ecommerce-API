@@ -15,9 +15,9 @@ export const startServer = async (): Promise<void> => {
     const app = createApp();
     
     // Start the server
-    const server = app.listen(env.PORT, () => {
+    const server = app.listen(process.env.PORT, () => {
       logger.info(`Server running in ${env.NODE_ENV} mode on port ${env.PORT}`);
-      logger.info(`API available at http://localhost:${env.PORT}`);
+      logger.info(`API available at http://localhost:${process.env.PORT}`);
     });
     
     // Handle unhandled rejections
