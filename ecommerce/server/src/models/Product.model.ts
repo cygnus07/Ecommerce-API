@@ -20,13 +20,13 @@ const productVariantSchema = new Schema<ProductVariant>({
   isDefault: { type: Boolean, default: false }
 }, { _id: true, timestamps: false });
 
-export enum ProductStatus {
-  DRAFT = 'draft',
-  ACTIVE = 'active',
-  OUT_OF_STOCK = 'out_of_stock',
-  ARCHIVED = 'archived',
-  DISCONTINUED = 'discontinued'
-}
+// export enum ProductStatus {
+//   DRAFT = 'draft',
+//   ACTIVE = 'active',
+//   OUT_OF_STOCK = 'out_of_stock',
+//   ARCHIVED = 'archived',
+//   DISCONTINUED = 'discontinued'
+// }
 
 // Product schema
 const productSchema = new Schema<ProductDocument>({

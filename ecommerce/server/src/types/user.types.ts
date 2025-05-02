@@ -30,6 +30,7 @@ export interface Address {
 export interface UserDocument {
   _id: Types.ObjectId; // Changed from string to Types.ObjectId
   googleId?: string;
+  facebookId?: string;
   email: string;
   password: string;
   firstName: string;
@@ -41,6 +42,7 @@ export interface UserDocument {
   addresses: Address[];
   passwordResetToken?: string;
   passwordResetExpires?: Date;
+  passwordChangedAt?: Date;
   emailVerified: boolean;
   emailVerificationToken?: string;
   lastLogin?: Date;

@@ -19,14 +19,21 @@ export interface SearchProductsQuery {
     limit?: number;
   }
   
-  // Extend Express Request to include pagination
-  declare global {
-    namespace Express {
-      interface Request {
-        pagination: {
-          page: number;
-          limit: number;
-        };
-      }
-    }
-  }
+  // // Extend Express Request to include pagination
+  // declare global {
+  //   namespace Express {
+  //     interface Request {
+  //       pagination: {
+  //         page: number;
+  //         limit: number;
+  //       };
+  //     }
+  //   }
+  // }
+
+  // Export the pagination type so it can be used elsewhere
+export interface Pagination {
+  page: number;
+  limit: number;
+  skip: number;
+}

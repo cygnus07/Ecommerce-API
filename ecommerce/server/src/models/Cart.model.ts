@@ -1,5 +1,5 @@
 import mongoose, { Schema, model } from 'mongoose';
-import { CartDocument, CartItem } from '../types/cart.types.js';
+import { CartItem, CartModel } from '../types/cart.types.js';
 
 
 // Cart item schema
@@ -37,7 +37,7 @@ const cartItemSchema = new Schema<CartItem>({
 }, { _id: true });
 
 // Cart schema
-const cartSchema = new Schema<CartDocument>({
+const cartSchema = new Schema<CartModel>({
   user: { 
     type: Schema.Types.ObjectId, 
     ref: 'User', 
@@ -103,6 +103,6 @@ cartSchema.pre('save', function(next) {
 // Index for expiration
 cartSchema.index({ expiresAt: 1 }, { expireAfterSeconds: 0 });
 
-const Cart = mongoose.models.Cart || model<CartDocument>('Cart', cartSchema);
+const Cart = mongoose.models.Cart || model<CartModel>('Cart', cartSchema);
 
 export default Cart;

@@ -91,7 +91,7 @@
         res,
         'Internal Server Error',
         ErrorCodes.INTERNAL_SERVER_ERROR,
-        env.NODE_ENV === 'development' ? { stack: err.stack } : undefined
+        env.NODE_ENV === 'development' ?  err.stack  : undefined
       );
     });
 
