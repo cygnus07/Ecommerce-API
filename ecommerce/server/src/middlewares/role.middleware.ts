@@ -12,7 +12,6 @@ export const authorize = (allowedRoles: string[]) => {
       return sendError(
         res, 
         'Authentication required', 
-        401, 
         ErrorCodes.UNAUTHORIZED
       );
     }
@@ -23,7 +22,6 @@ export const authorize = (allowedRoles: string[]) => {
       return sendError(
         res, 
         'You do not have permission to perform this action', 
-        403, 
         ErrorCodes.FORBIDDEN
       );
     }

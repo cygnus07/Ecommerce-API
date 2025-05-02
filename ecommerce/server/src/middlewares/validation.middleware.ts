@@ -29,7 +29,8 @@ export const validate = <T extends z.ZodTypeAny>(
       next();
     } catch (error) {
       if (error instanceof ZodError) {
-        return res.status(400).json({
+        // Don't return a value here - just send the response
+        res.status(400).json({
           success: false,
           code: ErrorCodes.VALIDATION_ERROR,
           message: 'Validation failed',
@@ -38,6 +39,8 @@ export const validate = <T extends z.ZodTypeAny>(
             message: err.message
           }))
         });
+        // Don't call next() here since you've already sent a response
+        return;
       }
       next(error);
     }
