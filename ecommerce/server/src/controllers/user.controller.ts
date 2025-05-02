@@ -10,6 +10,7 @@ import jwt from 'jsonwebtoken';
 import { withRetry } from '../utils/helper.js';
 import BlacklistedToken from '../models/BlacklistedToken.model.js';
 import passport from 'passport';
+import { AuthenticatedRequest, AuthUser } from '../types/user.types.js';
 // import nodemailer from 'nodemailer'
 
 import { 
@@ -135,7 +136,7 @@ export const userController = {
         sendSuccess(res, { 
           user: userObject,
           message: 'Registration successful. Please check your email for verification instructions.'
-        }, null, 201);
+        }, 'Registration Successfull', 201);
         
       } catch (error) {
         // Rollback on any error
@@ -503,12 +504,17 @@ export const userController = {
         sendError(res, 'User not found', ErrorCodes.NOT_FOUND);
         return;
       }
+
+      const safeUser = {
+        _id: user._id,
+        email: user.email,
+        firstName: user.firstName,
+        lastName: user.lastName,
+        role: user.role,
+        // include other fields you want to expose
+      };
       
-      // Remove password from response
-      const userObject = user.toObject();
-      delete userObject.password;
-      
-      sendSuccess(res, { user: userObject }, 'User profile retrieved successfully');
+      sendSuccess(res, { user: safeUser }, 'User profile retrieved successfully');
     } catch (error) {
       logger.error(`Get profile error: ${error}`);
       sendError(res, 'Failed to retrieve user profile', 500);
@@ -516,7 +522,7 @@ export const userController = {
   },
   
   // Update user profile
-  updateProfile: async (req: Request, res: Response): Promise<void> => {
+  updateProfile: async (req: AuthenticatedRequest, res: Response): Promise<void> => {
     try {
       const { firstName, lastName, email, phone } = req.validatedData as UpdateProfileInput;
       const userId = req.user._id;
@@ -554,7 +560,7 @@ export const userController = {
   },
   
   // Change password
-  changePassword: async (req: Request, res: Response): Promise<void> => {
+  changePassword: async (req: AuthenticatedRequest, res: Response): Promise<void> => {
     try {
       const { currentPassword, newPassword } = req.validatedData as ChangePasswordInput;
       const userId = req.user._id;
@@ -601,7 +607,7 @@ export const userController = {
       
       // 7. Send password change notification email
       emailService.sendPasswordChangeNotification(user.email, user.firstName || 'User')
-        .catch(e => logger.error('Password change notification failed:', e));
+        .catch(e => logger.error(`Password change notification failed: ${e}`));
       
       sendSuccess(res, null, 'Password changed successfully');
     } catch (error) {

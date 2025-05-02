@@ -50,16 +50,19 @@ export interface UserDocument {
 }
 
 // For when you just need the basic user identification
-export interface AuthUser {
+export interface AuthUser extends UserDocument,Document {
   _id: Types.ObjectId;
   email: string;
   role: UserRole;
-  // Add other minimal properties needed in req.user
+  
 }
 
 // For Express Request typing
 export interface AuthenticatedRequest extends Request {
-  user: AuthUser; // Uses the minimal AuthUser interface
+  user: AuthUser & {
+    id: string; // If you need the string version of the ID
+    [key: string]: any; // For any additional properties
+  };
 }
 
 // Keep your existing IUser if needed for other purposes

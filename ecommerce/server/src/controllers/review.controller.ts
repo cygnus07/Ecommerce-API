@@ -11,15 +11,7 @@ import {
   ReplyInput,
   ModerateReviewInput
 } from '../types/review.types.js';
-
-// Define request types to enhance type safety
-interface AuthenticatedRequest extends Request {
-  user: {
-    id: string;
-    _id: string;
-    role?: string;
-  }
-}
+import { AuthenticatedRequest } from '../types/user.types.js';
 
 export const reviewController = {
   /**
@@ -28,7 +20,7 @@ export const reviewController = {
   createReview: async (req: AuthenticatedRequest, res: Response): Promise<void> => {
     try {
       const { productId, rating, comment, title, images } = req.body as CreateReviewInput;
-      const userId = req.user.id;
+      const userId = req.user._id;
 
       // Check if product exists
       const product = await Product.findById(productId);
@@ -125,7 +117,7 @@ export const reviewController = {
     try {
       const { reviewId } = req.params;
       const { rating, comment, title, images } = req.body as UpdateReviewInput;
-      const userId = req.user.id;
+      const userId = req.user._id;
 
       const review = await Review.findById(reviewId);
       
@@ -133,9 +125,10 @@ export const reviewController = {
         sendError(res, 'Review not found', ErrorCodes.NOT_FOUND);
       }
 
-      // Check if user is the owner of the review
+      // Check if user is the owner of the revie
       if (review.user.toString() !== userId) {
-        return sendError(res, 'Unauthorized', ErrorCodes.FORBIDDEN);
+         sendError(res, 'Unauthorized', ErrorCodes.FORBIDDEN);
+         return
       }
 
       // Update fields if provided
@@ -152,7 +145,7 @@ export const reviewController = {
       // Update product average rating
       await updateProductRating(review.product);
 
-      return sendSuccess(res, review, 'Review updated successfully');
+      sendSuccess(res, review, 'Review updated successfully');
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : 'Unknown error occurred';
       logger.error(`Error updating review: ${errorMessage}`);
@@ -166,7 +159,7 @@ export const reviewController = {
   deleteReview: async (req: AuthenticatedRequest, res: Response): Promise<void> => {
     try {
       const { reviewId } = req.params;
-      const userId = req.user.id;
+      const userId = req.user._id;
 
       const review = await Review.findById(reviewId);
       
@@ -203,7 +196,7 @@ export const reviewController = {
   markReviewHelpful: async (req: AuthenticatedRequest, res: Response): Promise<void> => {
     try {
       const { reviewId } = req.params;
-      const userId = req.user.id;
+      const userId = req.user._id.toString();
 
       const review = await Review.findById(reviewId);
       
@@ -212,11 +205,11 @@ export const reviewController = {
       }
 
       // Check if user has already marked this review as helpful
-      const alreadyMarked = review.helpful.users.some(id => id.toString() === userId);
+      const alreadyMarked = review.helpful.users.some((id: Types.ObjectId ) => id.toString() === userId);
       
       if (alreadyMarked) {
         // Remove user from helpful.users array
-        review.helpful.users = review.helpful.users.filter(id => id.toString() !== userId);
+        review.helpful.users = review.helpful.users.filter((id: Types.ObjectId ) => id.toString() !== userId);
         review.helpful.count = Math.max(0, review.helpful.count - 1);
       } else {
         // Add user to helpful.users array
@@ -244,7 +237,7 @@ export const reviewController = {
   reportReview: async (req: AuthenticatedRequest, res: Response): Promise<void> => {
     try {
       const { reviewId } = req.params;
-      const userId = req.user.id;
+      const userId = req.user._id;
 
       const review = await Review.findById(reviewId)
         .select('+reportThreshold');
@@ -278,7 +271,7 @@ export const reviewController = {
     try {
       const { reviewId } = req.params;
       const { text } = req.body as ReplyInput;
-      const userId = req.user.id;
+      const userId = req.user._id;
 
       const review = await Review.findById(reviewId);
       
@@ -312,7 +305,7 @@ export const reviewController = {
     try {
       const { reviewId } = req.params;
       const { status } = req.body as ModerateReviewInput;
-      const userId = req.user.id;
+      const userId = req.user._id;
 
       // Check if user is admin
       if (req.user.role !== 'admin') {

@@ -4,11 +4,20 @@ import { sendSuccess, sendError } from '../utils/apiResponse.js';
 import { logger } from '../utils/logger.js';
 import { SearchProductsQuery, SearchSuggestionsQuery } from '../types/search.types.js'
 
+
+interface RequestWithPagination extends Request {
+  pagination: {
+    page: number;
+    limit: number;
+    skip: number;
+  };
+}
+
 export const searchController = {
   /**
    * Search for products with filtering, sorting and pagination
    */
-  searchProducts: async (req: Request, res: Response): Promise<void> => {
+  searchProducts: async (req: RequestWithPagination, res: Response): Promise<void> => {
     try {
       const { q, category, priceMin, priceMax, inStock, sortBy, sortOrder } = req.query as unknown as SearchProductsQuery;
       const { page, limit } = req.pagination;

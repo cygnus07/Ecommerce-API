@@ -6,21 +6,16 @@ import { logger } from '../utils/logger.js';
 import { AddToWishlistRequest, WishlistItem } from '../types/wishlist.types.js';
 import mongoose from 'mongoose';
 
-// Extend Express Request to include user property
-interface AuthenticatedRequest extends Request {
-  user: {
-    id: string;
-    [key: string]: any;
-  };
-}
+
+import { AuthenticatedRequest } from '../types/user.types.js';
 
 export const wishlistController = {
   /**
    * Get user's wishlist
    */
-  getWishlist: async (req: Request, res: Response): Promise<void> => {
+  getWishlist: async (req: AuthenticatedRequest, res: Response): Promise<void> => {
     try {
-      const userId = (req as AuthenticatedRequest).user.id;
+      const userId = req.user._id;
       
       let wishlist = await Wishlist.findOne({ user: userId })
         .populate({
