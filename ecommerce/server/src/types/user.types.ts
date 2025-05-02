@@ -26,6 +26,7 @@ export enum UserRole {
   
   export interface UserDocument {
     _id: string;
+    googleId?: string; // ← ADD THIS LINE
     email: string;
     password: string;
     firstName: string;
@@ -44,3 +45,8 @@ export enum UserRole {
     createdAt: Date;
     updatedAt: Date;
   }
+
+  export interface IUser {
+    _id: string | { toString(): string };
+  }
+  

@@ -1,28 +1,30 @@
 import passport from 'passport';
-import { Strategy as GoogleStrategy, Profile as GoogleProfile } from 'passport-google-oauth20';
+import { Strategy as GoogleStrategy, Profile as GoogleProfile, StrategyOptions } from 'passport-google-oauth20';
 import { Strategy as FacebookStrategy, Profile as FacebookProfile } from 'passport-facebook';
 import User from '../models/User.model.js'; 
 import { env } from './environment.js';
 import { logger } from '../utils/logger.js';
 import crypto from 'crypto';
+import { IUser } from '../types/user.types.js'
 
 // Configure Google Strategy
-passport.use(new GoogleStrategy(
-  {
-    clientID: env.GOOGLE_CLIENT_ID,
-    clientSecret: env.GOOGLE_CLIENT_SECRET,
-    callbackURL: `${env.API_BASE_URL}/api/v1/users/auth/google/callback`,
-    scope: ['profile', 'email'],
-    passReqToCallback: false
-  },
-  async (
-    accessToken: string,
-    refreshToken: string,
-    profile: GoogleProfile,
-    done: (error: any, user?: Express.User | false | null) => void
-  ) => {
-    try {
-      const email = profile.emails?.[0]?.value;
+passport.use(
+  new GoogleStrategy(
+    {
+      clientID: env.GOOGLE_CLIENT_ID,
+      clientSecret: env.GOOGLE_CLIENT_SECRET,
+      callbackURL: `${env.API_BASE_URL}/api/v1/users/auth/google/callback`,
+      scope: ['profile', 'email'],
+      passReqToCallback: false
+    } as StrategyOptions,
+    async (
+      accessToken: string,
+      refreshToken: string,
+      profile: GoogleProfile,
+      done: (error: any, user?: any) => void
+    ) => {
+      try {
+        const email = profile.emails?.[0]?.value;
 
       // Handle missing lastName
       const lastName = profile.name?.familyName || 

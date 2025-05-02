@@ -52,7 +52,7 @@ export const config = {
     host: env.EMAIL_HOST,
     port: env.EMAIL_PORT,
     user: env.EMAIL_USER,
-    password: env.EMAIL_PASSWORD,
+    password: env.EMAIL_PASS,
     from: env.EMAIL_FROM,
   },
 
