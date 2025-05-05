@@ -15,11 +15,17 @@ export const startServer = async (): Promise<void> => {
     const app = createApp();
     
     // Start the server
-    const port = process.env.PORT
-    const server = app.listen(port, () => {
-      logger.info(`Server running in ${env.NODE_ENV} mode on port ${port}`);
-      logger.info(`API available at http://localhost:${port}`);
-    });
+    // const port = process.env.PORT
+    // const server = app.listen(port, () => {
+    //   logger.info(`Server running in ${env.NODE_ENV} mode on port ${port}`);
+    //   logger.info(`API available at http://localhost:${port}`);
+    // });
+
+    const port = parseInt(process.env.PORT || '5000', 10); 
+
+const server = app.listen(port, '0.0.0.0', () => {  // Explicitly listen on 0.0.0.0
+  logger.info(`Server running on ${port} (NODE_ENV: ${env.NODE_ENV})`);
+});
     
     // Handle unhandled rejections
     process.on('unhandledRejection', (err: Error) => {

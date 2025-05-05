@@ -20,8 +20,8 @@ const getEnvVariable = (key: string, defaultValue?: string): string => {
 
 export const env = {
   // Server
-  NODE_ENV: getEnvVariable('NODE_ENV', 'development'),
-  PORT: parseInt(getEnvVariable('PORT', '5000'), 10),
+  PORT: parseInt(process.env.PORT || '5000', 10), // Render's PORT takes priority
+  NODE_ENV: process.env.NODE_ENV || 'development',
   
   // MongoDB
   MONGODB_URI: getEnvVariable('MONGODB_URI', 'mongodb://localhost:27017/ecommerce'),
