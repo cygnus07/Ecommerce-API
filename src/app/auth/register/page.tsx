@@ -12,6 +12,7 @@ import { registerSchema } from '@/lib/utils/validation';
 import { useAuth } from '@/context/AuthContext';
 import { useEffect } from 'react';
 import { useRouter } from 'next/navigation';
+import axios from 'axios';
 
 // Removing confirmPassword from the data sent to API
 type RegisterFormData = z.infer<typeof registerSchema>;
@@ -36,10 +37,24 @@ export default function RegisterPage() {
     }
   }, [isAuthenticated, router]);
 
+  useEffect(() => {
+    console.log('Current API URL:', process.env.NEXT_PUBLIC_API_URL);
+  }, []);
+
   const onSubmit = async (data: RegisterFormData) => {
-    // Remove confirmPassword from data sent to API
-    const { confirmPassword, ...apiData } = data;
-    await registerUser(apiData);
+    try {
+      console.log('Form submitted with data:', data);
+      const { confirmPassword, ...apiData } = data;
+      console.log('Attempting to register with:', apiData);
+      await registerUser(apiData);
+    } catch (error) {
+      console.error('Registration failed:', {
+        error,
+        fullError: JSON.stringify(error, null, 2),
+        axiosIsError: axios.isAxiosError(error),
+        responseData: axios.isAxiosError(error) ? error.response?.data : null
+      });
+    }
   };
 
   return (
@@ -130,7 +145,7 @@ export default function RegisterPage() {
             type="button"
             variant="outline"
             fullWidth
-            onClick={() => window.location.href = '/api/users/auth/google'}
+            onClick={() => window.location.href = '/api/v1/users/auth/google'}
           >
             <div className="flex items-center justify-center">
               <svg className="h-5 w-5 mr-2" viewBox="0 0 24 24">

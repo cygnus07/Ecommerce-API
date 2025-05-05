@@ -7,9 +7,23 @@ const apiClient = axios.create({
   headers: {
     'Content-Type': 'application/json',
   },
-  withCredentials: true, // Important for cookies
+//   withCredentials: true, // Important for cookies
 });
-console.log(apiClient)
+// console.log(apiClient)
+
+// Add this before your interceptors
+apiClient.interceptors.request.use(request => {
+    console.log('Starting Request', request);
+    return request;
+  });
+  
+  apiClient.interceptors.response.use(response => {
+    console.log('Response:', response);
+    return response;
+  }, error => {
+    console.log('Error:', error);
+    return Promise.reject(error);
+  });
 
 // Request interceptor for adding auth token
 apiClient.interceptors.request.use(

@@ -23,18 +23,21 @@ import {
   export const authApi = {
     // Register a new user
     register: async (data: RegisterData): Promise<RegisterResponse> => {
-      try {
-        const response = await apiClient.post<RegisterResponse>('/users/register', data);
-        return response.data;
-      } catch (error) {
-        throw new Error(handleApiError(error));
-      }
-    },
+        try {
+          console.log('Sending registration data:', data);
+          const response = await apiClient.post<RegisterResponse>('/api/v1/users/register', data);
+          console.log('Registration response:', response);
+          return response.data;
+        } catch (error) {
+          console.error('Registration error details:', error);
+          throw new Error(handleApiError(error));
+        }
+      },
   
     // Verify email with OTP
     verifyEmail: async (data: VerifyEmailData): Promise<AuthResponse> => {
       try {
-        const response = await apiClient.post<AuthResponse>('/users/verify-email', data);
+        const response = await apiClient.post<AuthResponse>('api/v1/users/verify-email', data);
         return response.data;
       } catch (error) {
         throw new Error(handleApiError(error));
