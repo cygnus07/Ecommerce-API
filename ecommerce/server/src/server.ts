@@ -22,6 +22,9 @@ export const startServer = async (): Promise<void> => {
     // });
 
     const port = parseInt(process.env.PORT || '5000', 10); 
+    console.log('Process PORT:', process.env.PORT);
+console.log('Env PORT:', env.PORT);
+console.log('Final PORT:', port);
 
 const server = app.listen(port, '0.0.0.0', () => {  // Explicitly listen on 0.0.0.0
   logger.info(`Server running on ${port} (NODE_ENV: ${env.NODE_ENV})`);
