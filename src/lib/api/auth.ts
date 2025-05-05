@@ -47,7 +47,7 @@ import {
     // Resend verification email
     resendVerification: async (email: string): Promise<{ message: string }> => {
       try {
-        const response = await apiClient.post<{ message: string }>('/users/resend-verification', { email });
+        const response = await apiClient.post<{ message: string }>('api/v1/users/resend-verification', { email });
         return response.data;
       } catch (error) {
         throw new Error(handleApiError(error));
@@ -57,7 +57,7 @@ import {
     // Login user
     login: async (credentials: LoginCredentials): Promise<AuthResponse> => {
       try {
-        const response = await apiClient.post<AuthResponse>('/users/login', credentials);
+        const response = await apiClient.post<AuthResponse>('api/v1/users/login', credentials);
         
         // Store tokens in localStorage
         localStorage.setItem('accessToken', response.data.accessToken);
@@ -74,7 +74,7 @@ import {
       try {
         const refreshToken = localStorage.getItem('refreshToken');
         if (refreshToken) {
-          await apiClient.post('/users/logout', { refreshToken });
+          await apiClient.post('api/v1/users/logout', { refreshToken });
         }
         
         // Clear tokens
@@ -91,7 +91,7 @@ import {
     // Get current user profile
     getProfile: async (): Promise<User> => {
       try {
-        const response = await apiClient.get<User>('/users/profile');
+        const response = await apiClient.get<User>('ap1/v1/users/profile');
         return response.data;
       } catch (error) {
         throw new Error(handleApiError(error));
@@ -101,7 +101,7 @@ import {
     // Request password reset
     forgotPassword: async (data: ForgotPasswordData): Promise<{ message: string }> => {
       try {
-        const response = await apiClient.post<{ message: string }>('/users/forgot-password', data);
+        const response = await apiClient.post<{ message: string }>('api/v1/users/forgot-password', data);
         return response.data;
       } catch (error) {
         throw new Error(handleApiError(error));
@@ -111,7 +111,7 @@ import {
     // Reset password
     resetPassword: async (data: ResetPasswordData): Promise<{ message: string }> => {
       try {
-        const response = await apiClient.post<{ message: string }>('/users/reset-password', data);
+        const response = await apiClient.post<{ message: string }>('api/v1/users/reset-password', data);
         return response.data;
       } catch (error) {
         throw new Error(handleApiError(error));
