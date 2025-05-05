@@ -1,3 +1,5 @@
+// In your src/server.ts file, update the port configuration:
+
 import { createApp } from './app.js';
 import { connectToDatabase } from './config/database.js';
 import { env } from './config/environment.js';
@@ -14,21 +16,14 @@ export const startServer = async (): Promise<void> => {
     // Create Express app
     const app = createApp();
     
-    // Start the server
-    // const port = process.env.PORT
-    // const server = app.listen(port, () => {
-    //   logger.info(`Server running in ${env.NODE_ENV} mode on port ${port}`);
-    //   logger.info(`API available at http://localhost:${port}`);
-    // });
-
-    const port = parseInt(process.env.PORT || '5000', 10); 
-    console.log('Process PORT:', process.env.PORT);
-console.log('Env PORT:', env.PORT);
-console.log('Final PORT:', port);
-
-const server = app.listen(port, '0.0.0.0', () => {  // Explicitly listen on 0.0.0.0
-  logger.info(`Server running on ${port} (NODE_ENV: ${env.NODE_ENV})`);
-});
+    // Get port from environment - IMPORTANT for Render
+    const port = parseInt(process.env.PORT || '5000', 10);
+    
+    // Make sure to listen on 0.0.0.0 for Render
+    const server = app.listen(port, '0.0.0.0', () => {
+      logger.info(`Server running on port ${port} (NODE_ENV: ${env.NODE_ENV})`);
+      logger.info(`API available at http://0.0.0.0:${port}`);
+    });
     
     // Handle unhandled rejections
     process.on('unhandledRejection', (err: Error) => {
