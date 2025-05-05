@@ -1,7 +1,7 @@
-services:
-  - type: web
-    name: ecommerce-api
-    runtime: bun
-    buildCommand: npm install && npm run build
-    startCommand: npm start
+# services:
+#   - type: web
+#     name: ecommerce-api
+#     runtime: bun
+#     buildCommand: npm install && npm run build
+#     startCommand: npm start
     
