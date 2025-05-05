@@ -3,12 +3,13 @@ import { AuthTokens } from '@/types/user';
 
 // Create axios instance
 const apiClient = axios.create({
-  baseURL: process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001/api',
+  baseURL: process.env.NEXT_PUBLIC_API_URL || 'https://shopai-rmia.onrender.com',
   headers: {
     'Content-Type': 'application/json',
   },
   withCredentials: true, // Important for cookies
 });
+console.log(apiClient)
 
 // Request interceptor for adding auth token
 apiClient.interceptors.request.use(

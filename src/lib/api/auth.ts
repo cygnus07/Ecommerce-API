@@ -7,7 +7,7 @@ import {
     ForgotPasswordData,
     ResetPasswordData
   } from '@/types/user';
-  import apiClient, { handleApiError } from './client';
+  import apiClient, { handleApiError } from './client'
   
   interface AuthResponse {
     user: User;
