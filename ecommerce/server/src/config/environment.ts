@@ -51,7 +51,7 @@ export const env = {
   EMAIL_FROM: getEnvVariable('EMAIL_FROM', ''),
   EMAIL_SECURE: getEnvVariable('EMAIL_SECURE', 'false') === 'true',
 
-  FRONTEND_URL: getEnvVariable('FRONTEND_URL', 'http://www.greykiwi.com'),
+  FRONTEND_URL: getEnvVariable('FRONTEND_URL', 'http://192.168.6.158:3000'),
   APP_NAME: getEnvVariable('APP_NAME', 'Shop AI'),
 
 

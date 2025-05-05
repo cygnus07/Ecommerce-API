@@ -22,7 +22,7 @@ export const startServer = async (): Promise<void> => {
     // Make sure to listen on 0.0.0.0 for Render
     const server = app.listen(port, '0.0.0.0', () => {
       logger.info(`Server running on port ${port} (NODE_ENV: ${env.NODE_ENV})`);
-      logger.info(`API available at http://0.0.0.0:${port}`);
+      logger.info(`API available at http://localhost:${port}`);
     });
     
     // Handle unhandled rejections
