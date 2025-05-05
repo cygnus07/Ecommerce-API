@@ -1,17 +1,18 @@
 {
     "compilerOptions": {
-      "target": "ES2020",
       "module": "NodeNext",
       "moduleResolution": "NodeNext",
       "esModuleInterop": true,
+      "target": "ES2022",
       "forceConsistentCasingInFileNames": true,
       "strict": true,
       "skipLibCheck": true,
       "outDir": "./dist",
       "rootDir": "./src",
       "resolveJsonModule": true,
-      // "types": ["node"],
-      // "typeRoots": ["node_modules/@types"]
+      "types": ["node"], // Uncomment this to ensure Node.js types are included
+      "typeRoots": ["node_modules/@types"], // Uncomment this to specify where to look for types
+      "baseUrl": ".", // Helps with module resolution
     },
     "include": ["src/**/*"],
     "exclude": ["node_modules", "dist"]
