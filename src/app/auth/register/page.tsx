@@ -11,7 +11,7 @@ import FormError from '@/components/auth/FormError';
 import { registerSchema } from '@/lib/utils/validation';
 import { useAuth } from '@/context/AuthContext';
 import { useEffect } from 'react';
-import { useRouter } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
 import axios from 'axios';
 
 // Removing confirmPassword from the data sent to API
@@ -19,8 +19,9 @@ type RegisterFormData = z.infer<typeof registerSchema>;
 type RegisterApiData = Omit<RegisterFormData, 'confirmPassword'>;
 
 export default function RegisterPage() {
-  const { register: registerUser, isAuthenticated, isLoading, error } = useAuth();
+  const { register: registerUser, loginWithGoogle, isAuthenticated, isLoading, error } = useAuth();
   const router = useRouter();
+  const searchParams = useSearchParams();
   
   const {
     register,
@@ -30,16 +31,24 @@ export default function RegisterPage() {
     resolver: zodResolver(registerSchema),
   });
 
+  // Handle Google OAuth callback
+  useEffect(() => {
+    // Check if we have tokens in the URL (from Google OAuth callback)
+    const token = searchParams.get('token');
+    const refreshToken = searchParams.get('refreshToken');
+    
+    if (token && refreshToken) {
+      // Process the tokens and authenticate the user
+      loginWithGoogle({ token, refreshToken });
+    }
+  }, [searchParams, loginWithGoogle]);
+
   useEffect(() => {
     // Redirect if already logged in
     if (isAuthenticated) {
       router.push('/');
     }
   }, [isAuthenticated, router]);
-
-  useEffect(() => {
-    console.log('Current API URL:', process.env.NEXT_PUBLIC_API_URL);
-  }, []);
 
   const onSubmit = async (data: RegisterFormData) => {
     try {
@@ -55,6 +64,12 @@ export default function RegisterPage() {
         responseData: axios.isAxiosError(error) ? error.response?.data : null
       });
     }
+  };
+
+  const handleGoogleSignIn = () => {
+    const googleAuthUrl = `${process.env.NEXT_PUBLIC_API_URL}/api/v1/users/auth/google`;
+    console.log('Redirecting to Google OAuth:', googleAuthUrl);
+    window.location.href = googleAuthUrl;
   };
 
   return (
@@ -145,7 +160,7 @@ export default function RegisterPage() {
             type="button"
             variant="outline"
             fullWidth
-            onClick={() => window.location.href = '/api/v1/users/auth/google'}
+            onClick={handleGoogleSignIn}
           >
             <div className="flex items-center justify-center">
               <svg className="h-5 w-5 mr-2" viewBox="0 0 24 24">
