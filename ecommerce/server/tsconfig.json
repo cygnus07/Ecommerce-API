@@ -10,9 +10,9 @@
       "outDir": "./dist",
       "rootDir": "./src",
       "resolveJsonModule": true,
-      "types": ["node"], // Uncomment this to ensure Node.js types are included
-      "typeRoots": ["node_modules/@types"], // Uncomment this to specify where to look for types
-      "baseUrl": ".", // Helps with module resolution
+      "types": ["node"], 
+      "typeRoots": ["node_modules/@types"], 
+      "baseUrl": ".", 
     },
     "include": ["src/**/*"],
     "exclude": ["node_modules", "dist"]

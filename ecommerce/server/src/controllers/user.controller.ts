@@ -443,13 +443,20 @@ export const userController = {
   // Reset password with token
   resetPassword: async (req: Request, res: Response): Promise<void> => {
     try {
-      const { token, password } = req.body;
+      const { token, password, confirmPassword } = req.body;
       
-      if (!token || !password) {
-        sendError(res, 'Token and password are required', ErrorCodes.BAD_REQUEST);
+      // Validate required fields
+      if (!token || !password || !confirmPassword) {
+        sendError(res, 'Token, password and confirm password are required', ErrorCodes.BAD_REQUEST);
         return;
       }
-      
+
+      // Validate password match
+      if (password !== confirmPassword) {
+        sendError(res, 'Passwords do not match', ErrorCodes.BAD_REQUEST);
+        return;
+      }
+
       // Hash token for comparison with stored hash
       const hashedToken = crypto
         .createHash('sha256')
