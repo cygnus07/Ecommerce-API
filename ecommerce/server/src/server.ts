@@ -6,7 +6,7 @@ import { env } from './config/environment.js';
 import { logger } from './utils/logger.js';
 
 /**
- * Server startup function
+ * Server startup function 
  */
 export const startServer = async (): Promise<void> => {
   try {
