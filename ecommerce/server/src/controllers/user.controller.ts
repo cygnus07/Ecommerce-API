@@ -71,7 +71,7 @@ export const userController = {
             res, 
             'Email already registered but not verified. Check your email for verification code.',
             ErrorCodes.CONFLICT,
-            'EMAIL_EXISTS_NOT_VERIFIED'
+            'EMAIL_EXISTS_NOT_VgenerateTokeERIFIED'
           );
         }
         return;
